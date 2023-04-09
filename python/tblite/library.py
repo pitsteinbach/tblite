@@ -388,6 +388,7 @@ set_calculator_mixer_damping = context_check(lib.tblite_set_calculator_mixer_dam
 set_calculator_guess = context_check(lib.tblite_set_calculator_guess)
 set_calculator_temperature = context_check(lib.tblite_set_calculator_temperature)
 set_calculator_save_integrals = context_check(lib.tblite_set_calculator_save_integrals)
+set_calculator_xtbml = context_check(lib.tblite_set_calculator_xtbml)
 
 
 @context_check

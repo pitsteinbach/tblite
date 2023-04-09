@@ -422,11 +422,12 @@ class Calculator(Structure):
         "save-integrals": library.set_calculator_save_integrals,
         "temperature": library.set_calculator_temperature,
         "verbosity": library.set_calculator_verbosity,
+        "xtbml": library.set_calculator_xtbml,
     }
     _getter = {
         "angular-momenta": library.get_calculator_angular_momenta,
         "orbital-map": library.get_calculator_orbital_map,
-        "shell-map": library.get_calculator_shell_map,
+        "shell-map": library.get_calculator_shell_map
     }
 
     def __init__(
