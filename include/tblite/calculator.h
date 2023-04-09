@@ -150,6 +150,16 @@ tblite_set_calculator_save_integrals(tblite_context ctx,
                                      tblite_calculator calc,
                                      int save_integrals);
 
+/// Set the flag in the calculator to retain the integral matrices
+///
+/// @param ctx: Context handle
+/// @param calc: Calculator instance
+/// @param save_integrals: Flag to enable storing of integrals
+TBLITE_API_ENTRY void TBLITE_API_CALL
+tblite_set_calculator_xtbml(tblite_context ctx,
+                                     tblite_calculator calc,
+                                     int xtbml);
+
 /// Add container to calculator object.
 ///
 /// Note: Ownership is transferred and container handle is destroyed after function call

@@ -70,6 +70,8 @@ module tblite_xtb_calculator
       type(halogen_correction), allocatable :: halogen
       !> London-dispersion interaction
       class(dispersion_type), allocatable :: dispersion
+      !> 2 body dispersion correction only needed for xtb-ml
+      class(dispersion_type), allocatable :: dispersion_2body
       !> Parameter for self-consistent iteration mixing
       real(wp) :: mixer_damping = mixer_damping_default
       !> Maximum number of self-consistent iteractions
@@ -78,6 +80,8 @@ module tblite_xtb_calculator
       logical :: save_integrals = .false.
       !> List of additional interaction containers
       type(container_list), allocatable :: interactions
+      !> Compute xtbml features
+      logical :: xtbml = .false.
    contains
       !> Get information about density dependent quantities used in the energy
       procedure :: variable_info
@@ -234,7 +238,7 @@ subroutine add_dispersion(calc, mol, param)
    !> Parametrization records
    type(param_record), intent(in) :: param
 
-   type(d4_dispersion), allocatable :: d4
+   type(d4_dispersion), allocatable :: d4, d4_2_body
    type(d3_dispersion), allocatable :: d3
 
    if (.not.allocated(param%dispersion)) return
@@ -245,8 +249,11 @@ subroutine add_dispersion(calc, mol, param)
          call move_alloc(d3, calc%dispersion)
       else
          allocate(d4)
+         allocate(d4_2_body)
          call new_d4_dispersion(d4, mol, s6=par%s6, s8=par%s8, a1=par%a1, a2=par%a2, s9=par%s9)
          call move_alloc(d4, calc%dispersion)
+         call new_d4_dispersion(d4_2_body, mol, s6=par%s6, s8=par%s8, a1=par%a1, a2=par%a2, s9=0.0_wp)
+         call move_alloc(d4_2_body,calc%dispersion_2body)
       end if
    end associate
 end subroutine add_dispersion

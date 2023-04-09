@@ -14,13 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
-srcs += files(
-  'calculator.f90',
-  'coulomb.f90',
-  'gfn1.f90',
-  'gfn2.f90',
-  'h0.f90',
-  'ipea1.f90',
-  'singlepoint.f90',
-  'spec.f90'
+set(dir "${CMAKE_CURRENT_SOURCE_DIR}")
+
+list(
+  APPEND srcs
+  "${dir}/atomic_frontier_orbitals.f90"
+  "${dir}/xtbml.f90"
+  "${dir}/type.f90"
 )
+
+set(srcs "${srcs}" PARENT_SCOPE)

@@ -223,3 +223,13 @@ TBLITE_API_ENTRY void TBLITE_API_CALL
 tblite_get_result_hamiltonian_matrix(tblite_error error,
                                      tblite_result res,
                                      double* hmat);
+
+/// Retrieve Hamiltonian matrix from result container
+///
+/// @param error: Handle for error messages
+/// @param res: Result container
+/// @param hmat: Hamiltonian matrix, shape [nao][nao]
+TBLITE_API_ENTRY void TBLITE_API_CALL
+tblite_get_result_xtbml(tblite_error error,
+                                     tblite_result res,
+                                     double* ml_features);

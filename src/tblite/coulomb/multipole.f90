@@ -207,7 +207,8 @@ subroutine get_energy(self, mol, cache, wfn, energies)
    call gemv(ptr%amat_sd, wfn%qat(:, 1), vd)
    call gemv(ptr%amat_dd, wfn%dpat(:, :, 1), vd, beta=1.0_wp, alpha=0.5_wp)
    call gemv(ptr%amat_sq, wfn%qat(:, 1), vq)
-
+   !write(*,*) sum(wfn%dpat(:, :, 1) * vd, 1) 
+   !write(*,*) sum(wfn%qpat(:, :, 1) * vq, 1)
    energies(:) = energies + sum(wfn%dpat(:, :, 1) * vd, 1) + sum(wfn%qpat(:, :, 1) * vq, 1)
 
    call get_kernel_energy(mol, self%dkernel, wfn%dpat(:, :, 1), energies)

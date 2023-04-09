@@ -15,12 +15,7 @@
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
 srcs += files(
-  'calculator.f90',
-  'coulomb.f90',
-  'gfn1.f90',
-  'gfn2.f90',
-  'h0.f90',
-  'ipea1.f90',
-  'singlepoint.f90',
-  'spec.f90'
+  'atomic_frontier_orbitals.f90',
+  'type.f90',
+  'xtbml.f90'
 )

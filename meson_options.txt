@@ -49,7 +49,7 @@ option(
 option(
   'python',
   type: 'boolean',
-  value: false,
+  value: true,
   description: 'Build Python extension module',
 )
 
