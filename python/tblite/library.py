@@ -311,12 +311,42 @@ def _get_ao_matrix(getter):
 
     return with_allocation
 
+def _get_xtbml(getter):
+    """Correctly set allocation for matrix objects ml features before querying the getter"""
+
+    @functools.wraps(getter)
+    def with_allocation(res):
+        """Get a matrix property from the results object"""
+        _natoms = ffi.new("int *")
+        error_check(lib.tblite_get_result_number_of_atoms)(res, _natoms)
+        _mat = np.zeros((34, _natoms[0]))
+        error_check(getter)(res, ffi.cast("double*", _mat.ctypes.data))
+        _mat = _mat.T
+        return _mat
+
+    return with_allocation
+
+def _get_w_xtbml(getter):
+    """Correctly set allocation for matrix objects w_xtbml before querying the getter"""
+
+    @functools.wraps(getter)
+    def with_allocation(res):
+        """Get a matrix property from the results object"""
+        _natoms = ffi.new("int *")
+        error_check(lib.tblite_get_result_number_of_atoms)(res, _natoms)
+        _mat = np.zeros((_natoms[0]))
+        error_check(getter)(res, ffi.cast("double*", _mat.ctypes.data))
+        _mat = _mat
+        return _mat
+
+    return with_allocation
 
 get_orbital_coefficients = _get_ao_matrix(lib.tblite_get_result_orbital_coefficients)
 get_density_matrix = _get_ao_matrix(lib.tblite_get_result_density_matrix)
 get_overlap_matrix = _get_ao_matrix(lib.tblite_get_result_overlap_matrix)
 get_hamiltonian_matrix = _get_ao_matrix(lib.tblite_get_result_hamiltonian_matrix)
-get_xtbml_features = _get_xtbml(lib.tblite_get_result_xtbml)
+get_xtbml = _get_xtbml(lib.tblite_get_result_xtbml)
+get_w_xtbml = _get_w_xtbml(lib.tblite_get_result_xtbml_weights)
 
 
 def _delete_calculator(calc) -> None:

@@ -102,6 +102,8 @@ class TBLite(ase.calculators.calculator.Calculator):
         "charges",
         "dipole",
         "stress",
+        "xtbml",
+        "xtbml weights"
     ]
 
     default_parameters = {
@@ -169,6 +171,9 @@ class TBLite(ase.calculators.calculator.Calculator):
 
             if "max_iterations" in changed_parameters:
                 self._xtb.set("max-iter", self.parameters.max_iterations)
+            
+            if "xtbml" in changed_parameters:
+                self._xtb.set("xtbml",self.parameters.xtbml)
 
         return changed_parameters
 
@@ -235,6 +240,7 @@ class TBLite(ase.calculators.calculator.Calculator):
             )
             calc.set("max-iter", self.parameters.max_iterations)
             calc.set("verbosity", self.parameters.verbosity)
+            calc.set("xtbml",self.parameters.xtbml)
 
         except RuntimeError:
             raise ase.calculators.calculator.InputError(
@@ -298,6 +304,9 @@ class TBLite(ase.calculators.calculator.Calculator):
         self.results["forces"] = -self._res.get("gradient") * Hartree / Bohr
         self.results["charges"] = self._res.get("charges")
         self.results["dipole"] = self._res.get("dipole") * Bohr
+        if self.parameters.xtbml == 1:
+            self.results["xtbml"] = self._res.get("xtbml")
+            self.results["xtbml weights"] = self._res.get("xtbml weights")
         # stress tensor is only returned for periodic systems
         if self.atoms.pbc.any():
             _stress = self._res.get("virial") * Hartree / self.atoms.get_volume()

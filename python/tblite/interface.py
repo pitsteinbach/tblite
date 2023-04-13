@@ -227,6 +227,8 @@ class Result:
         "density-matrix": library.get_density_matrix,
         "overlap-matrix": library.get_overlap_matrix,
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
+        "xtbml" : library.get_xtbml,
+        "xtbml weights" : library.get_w_xtbml
     }
     _setter = {}
 

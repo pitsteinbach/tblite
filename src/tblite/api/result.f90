@@ -543,11 +543,11 @@ call get_result(verror, vres, error, res, ok)
 if (.not.ok) return
 
 if (.not.allocated(res%results)) then
-   call fatal_error(error%ptr, "Result does not contain bond orders")
+   call fatal_error(error%ptr, "Result does not contain result container")
    return
 end if
 
-if (.not.allocated(res%results%bond_orders)) then
+if (.not.allocated(res%results%ml_features)) then
    call fatal_error(error%ptr, "Result does not contain xtbml features")
    return
 end if
@@ -556,6 +556,35 @@ ml_features(:size(res%results%ml_features)) = &
 & reshape(res%results%ml_features, [size(res%results%ml_features)])
 
 end subroutine get_result_xtbml_api
+
+subroutine get_result_xtbml_weights_api(verror, vres, ml_features) &
+   & bind(C, name=namespace//"get_result_xtbml_weights")
+type(c_ptr), value :: verror
+type(vp_error), pointer :: error
+type(c_ptr), value :: vres
+type(vp_result), pointer :: res
+real(c_double), intent(out) :: ml_features(*)
+logical :: ok
+
+if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_weights"
+
+call get_result(verror, vres, error, res, ok)
+if (.not.ok) return
+
+if (.not.allocated(res%results)) then
+   call fatal_error(error%ptr, "Result does not contain result container")
+   return
+end if
+
+if (.not.allocated(res%results%w_xtbml)) then
+   call fatal_error(error%ptr, "Result does not contain xtbml features")
+   return
+end if
+
+ml_features(:size(res%results%w_xtbml)) = &
+& reshape(res%results%w_xtbml, [size(res%results%w_xtbml)])
+
+end subroutine get_result_xtbml_weights_api
 
 
 subroutine get_result(verror, vres, error, res, ok)

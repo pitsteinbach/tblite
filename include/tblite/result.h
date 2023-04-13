@@ -224,7 +224,7 @@ tblite_get_result_hamiltonian_matrix(tblite_error error,
                                      tblite_result res,
                                      double* hmat);
 
-/// Retrieve Hamiltonian matrix from result container
+/// Retrieve xtbml features from result container
 ///
 /// @param error: Handle for error messages
 /// @param res: Result container
@@ -233,3 +233,13 @@ TBLITE_API_ENTRY void TBLITE_API_CALL
 tblite_get_result_xtbml(tblite_error error,
                                      tblite_result res,
                                      double* ml_features);
+
+/// Retrieve xtbml weights from result container
+///
+/// @param error: Handle for error messages
+/// @param res: Result container
+/// @param hmat: Hamiltonian matrix, shape [nao][nao]
+TBLITE_API_ENTRY void TBLITE_API_CALL
+tblite_get_result_xtbml_weights(tblite_error error,
+                                     tblite_result res,
+                                     double* w_xtbml);

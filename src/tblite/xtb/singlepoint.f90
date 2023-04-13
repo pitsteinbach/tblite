@@ -44,7 +44,7 @@ module tblite_xtb_singlepoint
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
    use tblite_disp_d4, only: d4_dispersion, new_d4_dispersion
-   use xtbml_feature_calc
+   use xtbml_base, only : xtbml_base_type
    implicit none
    private
 
@@ -106,6 +106,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    type(error_type), allocatable :: error
    type(scf_info) :: info
    class(solver_type), allocatable :: solver
+   class(xtbml_base_type),allocatable :: ml
    type(adjacency_list) :: list
    integer :: iscf, spin
 
@@ -272,7 +273,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
    if (calc%xtbml) then 
    call timer%push("xtb-ml features")
-   call do_ML_print(mol,wfn,ints,erep,calc,ccache,dcache,results)
+   allocate(ml)
+   call ml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,results)
    end if
    call ctx%delete_solver(solver)
    
