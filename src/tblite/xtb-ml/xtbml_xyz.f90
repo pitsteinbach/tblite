@@ -36,10 +36,9 @@ contains
         real(wp), INTENT(IN) ::  erep(mol%nat)
         integer, intent(in) :: prlevel
         real(wp) :: e_gfn2_tot
-        real(wp), allocatable :: e_ao(:),e_disp(:)
         integer :: ml_out
         
-        self%n_features = 88
+        self%n_features = 97
         self%a = 1.0_wp
         allocate(self%feature_labels(self%n_features))
         self%feature_labels = [ character(len=20) :: "CN","delta_CN",&
@@ -50,8 +49,8 @@ contains
         &"dipm_d_x","dipm_d_y","dipm_d_z",&
         &"qm_s","qm_p","qm_d",&
         &"qm_s_xx","qm_s_xy","qm_s_yy","qm_s_xz","qm_s_yz","qm_s_zz",&
-        &"qm_d_xx","qm_d_xy","qm_d_yy","qm_d_xz","qm_d_yz","qm_d_zz",&
         &"qm_p_xx","qm_p_xy","qm_p_yy","qm_p_xz","qm_p_yz","qm_p_zz",&
+        &"qm_d_xx","qm_d_xy","qm_d_yy","qm_d_xz","qm_d_yz","qm_d_zz",&
         &"p_A","delta_p_A","dipm_A",&
         &"dipm_A_x","dipm_A_y","dipm_A_z",&
         &"delta_dipm_A",&
@@ -72,7 +71,7 @@ contains
         &"E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
-        call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep)
+        call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
         
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focc(:,1),wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
         integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao,self%eluao)
@@ -86,7 +85,6 @@ contains
             open(file='ml_feature_tblite.csv', newunit=ml_out)
             call self%print_out(ml_out,mol%nat,mol%num,mol%id,res)
         endif
-        deallocate(e_ao,e_disp,rcov)
 
     end subroutine get_xtbml
 
@@ -98,7 +96,9 @@ contains
         type(results_type),intent(inout) :: res
         class(xtbml_xyz_type), intent(inout) :: self
         integer :: i, nsh
-        
+        res%n_features = self%n_features
+        allocate(res%xtbml_labels(res%n_features))
+        res%xtbml_labels = self%feature_labels
         allocate(res%ml_features(nat,self%n_features),source=0.0_wp)
         res%ml_features(:,1) = self%cn_atom(:)
         res%ml_features(:,2) = self%delta_cn(:)
@@ -107,6 +107,7 @@ contains
         call pack_mult_xyz_shell(self%dipm_shell_xyz,res,9,nat,at2nsh) !packs xyz for s to d shell 9-17
         call pack_shellwise(self%qm_shell,res,18,at2nsh,nat) ! 18-20
         call pack_mult_xyz_shell(self%qm_shell_xyz,res,21,nat,at2nsh) !21-38
+        write(*,*) self%qm_shell_xyz(:,1:3)
         res%ml_features(:,39) = self%partial_charge_atom(:)
         res%ml_features(:,40) = self%delta_partial_charge(:)
         res%ml_features(:,41) = self%dipm_atom(:)
@@ -119,25 +120,25 @@ contains
         call pack_mult_xyz(self%delta_qm_xyz,res,57,nat) !57-62
         res%ml_features(:,63) = self%delta_dipm_e(:)
         call pack_mult_xyz(self%delta_dipm_e_xyz,res,64,nat) !64-66
-        res%ml_features(:,65) = self%delta_qm_e(:)
-        call pack_mult_xyz(self%delta_qm_e_xyz,res,66,nat) !66-71
-        res%ml_features(:,72) = self%delta_dipm_Z(:)
-        call pack_mult_xyz(self%delta_dipm_Z_xyz,res,73,nat) !73-75
-        res%ml_features(:,74) = self%delta_qm_Z(:)
-        call pack_mult_xyz(self%delta_qm_e_xyz,res,75,nat) !75-80
-        res%ml_features(:,76) = self%response(:)
-        res%ml_features(:,77) = self%egap(:)
-        res%ml_features(:,78) = self%chempot(:)
-        res%ml_features(:,79) = self%ehoao(:)
-        res%ml_features(:,80) = self%eluao(:)
-        res%ml_features(:,81) = self%e_rep_atom(:)
-        res%ml_features(:,82) = self%e_EHT(:)
-        res%ml_features(:,83) = self%e_disp_2(:)
-        res%ml_features(:,84) = self%e_disp_3(:)
-        res%ml_features(:,85) = self%e_ies_ixc(:)
-        res%ml_features(:,86) = self%e_aes(:)
-        res%ml_features(:,87) = self%e_axc(:)
-        res%ml_features(:,88) = e_tot
+        res%ml_features(:,67) = self%delta_qm_e(:)
+        call pack_mult_xyz(self%delta_qm_e_xyz,res,68,nat) !66-71
+        res%ml_features(:,74) = self%delta_dipm_Z(:)
+        call pack_mult_xyz(self%delta_dipm_Z_xyz,res,75,nat) !73-75
+        res%ml_features(:,78) = self%delta_qm_Z(:)
+        call pack_mult_xyz(self%delta_qm_e_xyz,res,79,nat) !77-82
+        res%ml_features(:,85) = self%response(:)
+        res%ml_features(:,86) = self%egap(:)
+        res%ml_features(:,87) = self%chempot(:)
+        res%ml_features(:,88) = self%ehoao(:)
+        res%ml_features(:,89) = self%eluao(:)
+        res%ml_features(:,90) = self%e_rep_atom(:)
+        res%ml_features(:,91) = self%e_EHT(:)
+        res%ml_features(:,92) = self%e_disp_2(:)
+        res%ml_features(:,93) = self%e_disp_3(:)
+        res%ml_features(:,94) = self%e_ies_ixc(:)
+        res%ml_features(:,95) = self%e_aes(:)
+        res%ml_features(:,96) = self%e_axc(:)
+        res%ml_features(:,97) = e_tot
         
     end subroutine
 

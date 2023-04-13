@@ -69,11 +69,13 @@ module tblite_coulomb_multipole
       !> Return dependency on density
       procedure :: variable_info
       !> Get anisotropic electrostatic energy
-      procedure :: get_energy
+      procedure :: get_energy 
       !> Get anisotropic electrostatic potential
       procedure :: get_potential
       !> Get derivatives of anisotropic electrostatics
       procedure :: get_gradient
+      !> Get only AXC part of the anisotropic electrostatics
+      procedure :: get_AXC
    end type damped_multipole
 
    real(wp), parameter :: unity(3, 3) = reshape([1, 0, 0, 0, 1, 0, 0, 0, 1], [3, 3])
@@ -207,8 +209,6 @@ subroutine get_energy(self, mol, cache, wfn, energies)
    call gemv(ptr%amat_sd, wfn%qat(:, 1), vd)
    call gemv(ptr%amat_dd, wfn%dpat(:, :, 1), vd, beta=1.0_wp, alpha=0.5_wp)
    call gemv(ptr%amat_sq, wfn%qat(:, 1), vq)
-   !write(*,*) sum(wfn%dpat(:, :, 1) * vd, 1) 
-   !write(*,*) sum(wfn%qpat(:, :, 1) * vq, 1)
    energies(:) = energies + sum(wfn%dpat(:, :, 1) * vd, 1) + sum(wfn%qpat(:, :, 1) * vq, 1)
 
    call get_kernel_energy(mol, self%dkernel, wfn%dpat(:, :, 1), energies)
@@ -1132,6 +1132,21 @@ subroutine view(cache, ptr)
       ptr => target
    end select
 end subroutine view
+
+subroutine get_AXC(self, mol, wfn, energies)
+   !> Instance of the multipole container
+   class(damped_multipole), intent(in) :: self
+   !> Molecular structure data
+   type(structure_type), intent(in) :: mol
+   !> Wavefunction data
+   type(wavefunction_type), intent(in) :: wfn
+   !> Electrostatic energy
+   real(wp), intent(inout) :: energies(:)
+
+   call get_kernel_energy(mol, self%dkernel, wfn%dpat(:, :, 1), energies)
+   call get_kernel_energy(mol, self%qkernel, wfn%qpat(:, :, 1), energies)
+   
+end subroutine get_AXC
 
 
 end module tblite_coulomb_multipole

@@ -373,7 +373,7 @@ if (.not.c_associated(vcalc)) then
 end if
 call c_f_pointer(vcalc, calc)
 
-calc%ptr%xtbml = xtbml /= 0
+calc%ptr%xtbml = xtbml 
 end subroutine set_calculator_xtbml_api
 
 subroutine get_calculator_shell_count(vctx, vcalc, nsh) &

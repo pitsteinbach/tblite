@@ -80,6 +80,8 @@ module tblite_cli
       integer :: solver = lapack_algorithm%gvd
       !> Compute xtbml features
       logical :: xtbml = .false.
+      !> Compute xtbml features and printout cartesian multipole monets instead of norm
+      logical :: xtbmlxyz = .false.
    end type run_config
 
    type, extends(driver_config) :: param_config
@@ -423,6 +425,9 @@ subroutine get_run_arguments(config, list, start, error)
          config%method = "gfn2"
          config%xtbml = .true. 
          !config%param = "gfn2"
+      case("--xtbml_xyz")
+         config%method = "gfn2"
+         config%xtbmlxyz = .true. 
       end select
    end do
 

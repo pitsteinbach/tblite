@@ -228,7 +228,9 @@ class Result:
         "overlap-matrix": library.get_overlap_matrix,
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
         "xtbml" : library.get_xtbml,
-        "xtbml weights" : library.get_w_xtbml
+        "xtbml weights" : library.get_w_xtbml,
+        #"xtbml n_features" : library.get_xtbml_n_features,
+        "xtbml labels" : library.get_xtbml_labels
     }
     _setter = {}
 

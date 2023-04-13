@@ -422,18 +422,19 @@ module xtbml_functions
         real(wp),intent(in) :: mult_xyz(:,:)
         type(results_type),intent(inout) :: res
         integer, intent(in) :: start_id, at2nsh(:)
-        integer :: i,j, k, nsh, id_tmp
+        integer :: j, k, nsh, id_tmp
         nsh = 1 
-        id_tmp = start_id
+    
         do k = 1, nat
+            id_tmp = start_id
             j = 1
-            do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1
+            do i = id_tmp, (id_tmp+size(mult_xyz,dim=1)-1)
                 res%ml_features(k,i) = mult_xyz(j,nsh)
                 j = j + 1
             end do
             nsh = nsh +1
             
-            if (at2nsh(i) == 2) then
+            if (at2nsh(k) == 2) then
                 id_tmp = id_tmp + size(mult_xyz,dim=1)
                 j = 1
                 do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1
@@ -441,7 +442,7 @@ module xtbml_functions
                 j = j + 1
                 end do
                 nsh = nsh +1
-            elseif (at2nsh(i) == 3) then
+            elseif (at2nsh(k) == 3) then
                 id_tmp = id_tmp + size(mult_xyz,dim=1)
                 j = 1
                 do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1

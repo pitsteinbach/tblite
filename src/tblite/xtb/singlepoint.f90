@@ -45,6 +45,8 @@ module tblite_xtb_singlepoint
       & get_hamiltonian_gradient
    use tblite_disp_d4, only: d4_dispersion, new_d4_dispersion
    use xtbml_base, only : xtbml_base_type
+   use xtbml_xyz, only: xtbml_xyz_type
+   use xtbml_class, only: xtbml_type
    implicit none
    private
 
@@ -106,7 +108,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    type(error_type), allocatable :: error
    type(scf_info) :: info
    class(solver_type), allocatable :: solver
-   class(xtbml_base_type),allocatable :: ml
+   class(xtbml_type), allocatable :: xtbml
    type(adjacency_list) :: list
    integer :: iscf, spin
 
@@ -271,10 +273,23 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message(label_total // format_string(sum(energies), real_format) // " Eh")
       call ctx%message("")
    end if
-   if (calc%xtbml) then 
+   if (calc%xtbml /= 0) then 
    call timer%push("xtb-ml features")
-   allocate(ml)
-   call ml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,results)
+   select case(calc%xtbml)
+   case(1)
+      block
+         type(xtbml_base_type),allocatable :: ml
+         allocate(ml)
+         call move_alloc(ml, xtbml)
+      end block
+   case(2)
+      block
+         type(xtbml_xyz_type), allocatable :: ml
+         allocate(ml)
+         call move_alloc(ml, xtbml)
+      end block
+   end select
+   call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,results)
    end if
    call ctx%delete_solver(solver)
    
@@ -350,7 +365,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
             call ctx%message(" - "//label(it)//format_time(stime) &
                & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")
          end do
-         if (calc%xtbml) then
+         if (calc%xtbml /= 0) then
             stime = timer%get("xtb-ml features")
             call ctx%message(" - "//"xtb-ml features     "//format_time(stime) &
                & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")  

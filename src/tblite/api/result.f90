@@ -36,7 +36,9 @@ module tblite_api_result
       & get_result_orbital_occupations_api, get_result_orbital_coefficients_api, &
       & get_result_energies_api, get_result_density_matrix_api, &
       & get_result_overlap_matrix_api, get_result_hamiltonian_matrix_api, &
-      & get_result_bond_orders_api, get_result_xtbml_api
+      & get_result_bond_orders_api, get_result_xtbml_api, get_result_xtbml_labels_api,&
+      & get_result_xtbml_weights_api, get_result_xtbml_n_features_api
+
 
 
    !> Void pointer holding results of a calculation
@@ -585,6 +587,64 @@ ml_features(:size(res%results%w_xtbml)) = &
 & reshape(res%results%w_xtbml, [size(res%results%w_xtbml)])
 
 end subroutine get_result_xtbml_weights_api
+
+
+subroutine get_result_xtbml_n_features_api(verror, vres, n_features) &
+   & bind(C, name=namespace//"get_result_xtbml_n_features")
+type(c_ptr), value :: verror
+type(vp_error), pointer :: error
+type(c_ptr), value :: vres
+type(vp_result), pointer :: res
+integer(c_int), intent(out) :: n_features
+logical :: ok
+
+if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_weights"
+
+call get_result(verror, vres, error, res, ok)
+if (.not.ok) return
+
+if (.not.allocated(res%results)) then
+   call fatal_error(error%ptr, "Result does not contain result container")
+   return
+end if
+
+n_features = res%results%n_features
+
+end subroutine get_result_xtbml_n_features_api
+
+
+subroutine get_result_xtbml_labels_api(verror, vres, str_ptrs) &
+   & bind(C, name=namespace//"get_result_xtbml_labels")
+type(c_ptr), value :: verror
+type(vp_error), pointer :: error
+type(c_ptr), value :: vres
+type(vp_result), pointer :: res
+type(c_ptr),allocatable :: str_ptrs(:)
+character(len=21,kind=c_char),target :: tmp_str
+logical :: ok
+integer :: ns
+
+if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_labels"
+
+call get_result(verror, vres, error, res, ok)
+if (.not.ok) return
+
+if (.not.allocated(res%results)) then
+   call fatal_error(error%ptr, "Result does not contain result container")
+   return
+end if
+
+if (.not.allocated(res%results%w_xtbml)) then
+   call fatal_error(error%ptr, "Result does not contain xtbml features")
+   return
+end if
+allocate(str_ptrs(res%results%n_features))
+do ns = 1, res%results%n_features
+   tmp_str = res%results%xtbml_labels(ns)//c_null_char
+   str_ptrs(ns) = c_loc(tmp_str)
+end do
+
+end subroutine get_result_xtbml_labels_api
 
 
 subroutine get_result(verror, vres, error, res, ok)

@@ -51,7 +51,7 @@ contains
         &"E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
-        call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep)
+        call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
 
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focc(:,1),wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
         integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao,self%eluao)

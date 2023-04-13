@@ -87,7 +87,7 @@ module xtbml_class
         procedure(pack_res),deferred,private :: pack_res
         procedure :: print_out
     end type xtbml_type
-
+        
     !<
     abstract interface
         subroutine get_xtbml(self,mol,wfn,integrals,erep,calc,ccache,dcache,prlevel,res)
@@ -178,9 +178,9 @@ module xtbml_class
 
     subroutine get_geometry_density_based(self,mol,wfn,integrals,calc)
         use tblite_data_covrad, only: get_covalent_rad
-            use tblite_ncoord_exp, only:  new_exp_ncoord, exp_ncoord_type
-            use xtbml_functions
-            use tblite_wavefunction_mulliken, only: get_mulliken_shell_multipoles
+        use tblite_ncoord_exp, only:  new_exp_ncoord, exp_ncoord_type
+        use xtbml_functions
+        use tblite_wavefunction_mulliken, only: get_mulliken_shell_multipoles
         class(xtbml_type) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
@@ -223,6 +223,8 @@ module xtbml_class
         !delta multipole moments
         call get_delta_mm(mol%nat,self%partial_charge_atom,wfn%dpat,wfn%qpat,mol%id,mol%xyz,&
         self%cn_atom,self%delta_dipm_xyz,self%delta_qm_xyz)
+        self%dipm_atom_xyz = wfn%dpat(:,:,1)
+        self%qm_atom_xyz = wfn%qpat(:,:,1)
 
         call comp_norm(calc%bas%nsh,dipm_shell_tmp,qm_shell_tmp,self%dipm_shell,self%qm_shell)
         call comp_norm(mol%nat,wfn%dpat,wfn%qpat,self%dipm_atom,self%qm_atom)
@@ -241,7 +243,7 @@ module xtbml_class
         call comp_norm(mol%nat,self%delta_dipm_Z_xyz,self%delta_qm_Z_xyz,self%delta_dipm_Z,self%delta_qm_Z)
     end subroutine get_geometry_density_based
 
-    subroutine get_energy_based(self,mol,wfn,calc,integrals,ccache,dcache,erep)
+    subroutine get_energy_based(self,mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
         use tblite_container, only : container_cache
         use tblite_scf_iterator, only : get_electronic_energy,reduce
         use xtbml_functions, only: get_total_xtb_weights
@@ -256,10 +258,12 @@ module xtbml_class
         type(container_cache),intent(inout) :: ccache,dcache
         type(container_cache) :: dcache2
         real(wp),intent(in) ::erep(mol%nat)
-        real(wp) :: e_gfn2_tot
+        real(wp),intent(inout) :: e_gfn2_tot
         real(wp), allocatable :: e_ao(:),e_disp(:)
         
+        call calc%coulomb%aes2%get_AXC(mol,wfn,self%e_axc)
         call calc%coulomb%aes2%get_energy(mol,ccache,wfn,self%e_aes)
+        self%e_aes = self%e_aes - self%e_axc
         call calc%coulomb%es2%get_energy(mol,ccache,wfn,self%e_ies_ixc)
         call calc%coulomb%es3%get_energy(mol,ccache,wfn,self%e_ies_ixc)
         call calc%dispersion_2body%update(mol,dcache2)
@@ -287,7 +291,7 @@ module xtbml_class
         integer, INTENT(IN) :: out,nat,at(nat),id2at(nat)
         type(results_type), intent(in) :: res
         integer :: i,j
-        
+        write(out,'(a)', advance="no") "Atom,w_xtb_tot"//','
         do i=1, self%n_features-1
             write(out,'(a)', advance="no") trim(self%feature_labels(i))//','
         end do
