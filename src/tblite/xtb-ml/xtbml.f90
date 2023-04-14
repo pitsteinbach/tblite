@@ -75,7 +75,7 @@ contains
         real(wp), intent(in) :: e_tot
         type(results_type),intent(inout) :: res
         class(xtbml_base_type), intent(inout) :: self
-        
+        allocate(res%xtbml_labels(self%n_features),source=self%feature_labels)
         allocate(res%ml_features(nat,self%n_features),source=0.0_wp)
         res%ml_features(:,1) = self%cn_atom(:)
         res%ml_features(:,2) = self%delta_cn(:)

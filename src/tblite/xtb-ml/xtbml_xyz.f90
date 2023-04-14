@@ -107,7 +107,6 @@ contains
         call pack_mult_xyz_shell(self%dipm_shell_xyz,res,9,nat,at2nsh) !packs xyz for s to d shell 9-17
         call pack_shellwise(self%qm_shell,res,18,at2nsh,nat) ! 18-20
         call pack_mult_xyz_shell(self%qm_shell_xyz,res,21,nat,at2nsh) !21-38
-        write(*,*) self%qm_shell_xyz(:,1:3)
         res%ml_features(:,39) = self%partial_charge_atom(:)
         res%ml_features(:,40) = self%delta_partial_charge(:)
         res%ml_features(:,41) = self%dipm_atom(:)

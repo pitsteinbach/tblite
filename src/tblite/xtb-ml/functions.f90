@@ -30,7 +30,6 @@ module xtbml_functions
         sum_energy = sum(sum_atom(:))
 
         w_tot_xtb(:) = sum_atom / sum_energy 
-        write(*,*) e_tot, sum_energy
         e_tot = sum_energy
 
     end subroutine

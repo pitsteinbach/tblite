@@ -613,16 +613,19 @@ n_features = res%results%n_features
 end subroutine get_result_xtbml_n_features_api
 
 
-subroutine get_result_xtbml_labels_api(verror, vres, str_ptrs) &
+subroutine get_result_xtbml_labels_api(verror, vres, charptr,buffersize,index) &
    & bind(C, name=namespace//"get_result_xtbml_labels")
+use tblite_api_utils, only : f_c_character
 type(c_ptr), value :: verror
 type(vp_error), pointer :: error
 type(c_ptr), value :: vres
 type(vp_result), pointer :: res
-type(c_ptr),allocatable :: str_ptrs(:)
-character(len=21,kind=c_char),target :: tmp_str
+character(kind=c_char), intent(out) :: charptr(*)
+integer(c_int), intent(in), optional :: buffersize
+integer(c_int), intent(in) :: index
+character(len=20) :: message
 logical :: ok
-integer :: ns
+integer :: max_length
 
 if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_labels"
 
@@ -638,11 +641,14 @@ if (.not.allocated(res%results%w_xtbml)) then
    call fatal_error(error%ptr, "Result does not contain xtbml features")
    return
 end if
-allocate(str_ptrs(res%results%n_features))
-do ns = 1, res%results%n_features
-   tmp_str = res%results%xtbml_labels(ns)//c_null_char
-   str_ptrs(ns) = c_loc(tmp_str)
-end do
+
+if (present(buffersize)) then
+   max_length = buffersize
+else
+   max_length = huge(max_length) - 2
+end if
+
+call f_c_character(res%results%xtbml_labels(index),charptr,max_length)
 
 end subroutine get_result_xtbml_labels_api
 
