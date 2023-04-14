@@ -39,7 +39,7 @@ module tblite_xtb_singlepoint
    use tblite_timer, only : timer_type, format_time
    use tblite_wavefunction, only : wavefunction_type, get_density_matrix, &
       & get_alpha_beta_occupation, get_mayer_bond_orders, &
-      & magnet_to_updown, updown_to_magnet
+      & magnet_to_updown, updown_to_magnet, occu
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
@@ -274,6 +274,14 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message("")
    end if
    if (calc%xtbml /= 0) then 
+      allocate(wfn%focca(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)
+      allocate(wfn%foccb(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)
+   if (mol%uhf /= 0) then
+      call occu(calc%bas%nao,nint(wfn%nel(1)),nint(wfn%nuhf),wfn%ihomoa,wfn%ihomob,wfn%focca,wfn%foccb)
+   else
+      wfn%focca =  wfn%focc(:,1)/2.0_wp
+      wfn%foccb =  wfn%focc(:,1)/2.0_wp
+   endif
    call timer%push("xtb-ml features")
    select case(calc%xtbml)
    case(1)
@@ -290,6 +298,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       end block
    end select
    call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,results)
+   deallocate(wfn%focca,wfn%foccb)
    end if
    call ctx%delete_solver(solver)
    

@@ -12,11 +12,13 @@ module xtbml_functions
         real(wp), intent(in) ::a
         dampening_fact = a
     end subroutine
+
     subroutine get_rcov(mol)
         use tblite_data_covrad, only: get_covalent_rad
         type(structure_type), intent(in) :: mol
-        
-        allocate(rcov(mol%nid),source=0.0_wp)
+        if (.not.allocated(rcov)) then
+            allocate(rcov(mol%nid),source=0.0_wp)
+        end if
         rcov(:) = get_covalent_rad(mol%num)
     end subroutine
 
@@ -481,6 +483,96 @@ module xtbml_functions
             nsh = nsh + 1
             end if
         end do
+    end subroutine
+
+
+    subroutine get_beta(nat,at,xyz,beta)
+        implicit none
+        intrinsic :: SUM
+        integer, INTENT(IN) :: nat,at(nat)
+        real(wp), INTENT(IN) :: xyz(3,nat)
+        real(wp) :: beta(nat,nat)
+
+        real(wp) :: sigma_tot, sigma(nat,nat)
+        real(wp) :: damp_func
+
+        integer :: A,B
+        
+        do A = 1,nat
+            do B = 1,nat
+                call inv_cn(nat,A,B,at,xyz,damp_func)
+                sigma(A,B) = 1/ damp_func
+            enddo
+        enddo
+
+
+
+        do A = 1,nat
+            do B = 1, nat
+                beta(A,B) = sigma(A,B) / sum(sigma(A,:))
+            enddo
+        enddo
+
+    end subroutine
+
+    subroutine get_chem_pot_ext(nat,beta,chempot,chempot_ext)
+        implicit none
+        integer, intent(in) :: nat
+        real(wp), intent(in) :: beta(nat,nat)
+        real(wp), intent(in) :: chempot(nat)
+        real(wp) :: chempot_ext(nat)
+        integer :: A,B
+        do A = 1,nat
+            do B = 1,nat
+                chempot_ext(A) = chempot_ext(A) + beta(A,B) * chempot(B)
+            enddo
+        enddo
+    end subroutine
+
+    subroutine get_e_gap_ext(nat,hl_gap,beta,e_gap,e_gap_ext)
+        implicit none
+        integer, intent(in) :: nat
+        real(wp), INTENT(IN) :: hl_gap
+        real(wp), intent(in) :: beta(nat,nat)
+        real(wp), intent(in) :: e_gap(nat)
+        real(wp) :: e_gap_ext(nat),e_gap_tot
+        integer :: A,B
+
+        e_gap_tot = 0.0_wp
+        do A = 1,nat
+            e_gap_tot = e_gap_tot + e_gap(A)
+            do B = 1,nat
+                e_gap_ext(A) = e_gap_ext(A) + beta(A,B) * e_gap(B)
+            enddo
+        enddo
+        ! correction factor for mol. properties
+        !e_gap_ext = e_gap_ext * (hl_gap * nat/e_gap_tot)
+    end subroutine
+
+    subroutine get_ehoao_ext(nat,chempot_ext,e_gap_ext,ehoao_ext)
+        implicit none
+        integer, intent(in) :: nat
+        real(wp), intent(in) :: chempot_ext(nat)
+        real(wp), intent(in) :: e_gap_ext(nat)
+        real(wp), intent(out) :: ehoao_ext(nat)
+        integer :: A
+
+        do A = 1,nat
+            ehoao_ext(A) = chempot_ext(A) -  e_gap_ext(A)/2
+        enddo
+    end subroutine
+
+    subroutine get_eluao_ext(nat,chempot_ext,e_gap_ext,eluao_ext)
+        implicit none
+        integer, intent(in) :: nat
+        real(wp), intent(in) :: chempot_ext(nat)
+        real(wp), intent(in) :: e_gap_ext(nat)
+        real(wp), intent(out) :: eluao_ext(nat)
+        integer :: A
+
+        do A = 1,nat
+            eluao_ext(A) = chempot_ext(A) +  e_gap_ext(A)/2
+        enddo
     end subroutine
 
 end module xtbml_functions

@@ -307,6 +307,7 @@ class TBLite(ase.calculators.calculator.Calculator):
         if self.parameters.xtbml == 1:
             self.results["xtbml"] = self._res.get("xtbml")
             self.results["xtbml weights"] = self._res.get("xtbml weights")
+            self.results["xtbml labels"] = self._res.get("xtbml labels")
         # stress tensor is only returned for periodic systems
         if self.atoms.pbc.any():
             _stress = self._res.get("virial") * Hartree / self.atoms.get_volume()

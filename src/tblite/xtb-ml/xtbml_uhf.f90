@@ -1,4 +1,4 @@
-module xtbml_base
+module xtbml_uhf
 
     use mctc_env, only : wp
     use tblite_wavefunction, only : wavefunction_type
@@ -14,7 +14,8 @@ module xtbml_base
     use xtbml_class, only: xtbml_type
 
     type, public, extends(xtbml_type) :: xtbml_base_type
-        
+        real(wp),ALLOCATABLE ::  ehoao_b  (:)
+        real(wp),ALLOCATABLE ::  eluao_b  (:)
         
 contains
     procedure :: get_xtbml
@@ -47,17 +48,20 @@ contains
         &"qm_s","qm_p","qm_d",&
         &"p_A","delta_p_A","dipm_A","delta_dipm_A","qm_A","delta_qm",&
         &"delta_dipm_e","delta_qm_e","delta_dipm_Z","delta_qm_Z",&
-        &"response","gap","chem_pot","HOAO_a","LUAO_a","HOAO_b","LUAO_b","delta_gap","delta_chem_pot","delta_HOAO","delta_LUAO",&
+        &"response","gap","chem_pot","HOAO_a","LUAO_a","HOAO_b","LUAO_b",&
+        &"delta_gap","delta_chem_pot","delta_HOAO","delta_LUAO",&
         &"E_repulsion","E_EHT",&
         &"E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
+
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
         call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
-       
-        call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
-        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b)
+        write(*,*) size()
+        call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focc(:,1),wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
+        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao,self%eluao)
 
-        call self%get_extended_frontier(mol,wfn)
+        call atomic_frontier_orbitals(mol%n,basis%nao,wfn%focca,wfn%foccb,wfn%emo,basis%aoat2,wfn%C,S,ml%response,&
+        ml%egap,ml%chempot,ml%ehoaoa,ml%ehoaob,ml%eluaoa,ml%eluaob)
         
         call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,res)
         allocate(res%w_xtbml(mol%nat),source=0.0_wp)
@@ -77,10 +81,8 @@ contains
         real(wp), intent(in) :: e_tot
         type(results_type),intent(inout) :: res
         class(xtbml_base_type), intent(inout) :: self
-        res%n_features = self%n_features
         allocate(res%xtbml_labels(self%n_features),source=self%feature_labels)
         allocate(res%ml_features(nat,self%n_features),source=0.0_wp)
-
         res%ml_features(:,1) = self%cn_atom(:)
         res%ml_features(:,2) = self%delta_cn(:)
         call pack_shellwise(self%mulliken_shell,res,3,at2nsh,nat)
@@ -99,23 +101,21 @@ contains
         res%ml_features(:,22) = self%response(:)
         res%ml_features(:,23) = self%egap(:)
         res%ml_features(:,24) = self%chempot(:)
-        res%ml_features(:,25) = self%ehoao_a(:)
-        res%ml_features(:,26) = self%eluao_a(:)
-        res%ml_features(:,27) = self%ehoao_b(:)
-        res%ml_features(:,28) = self%eluao_b(:)
-        res%ml_features(:,29) = self%delta_egap(:)
-        res%ml_features(:,30) = self%delta_chempot(:)
-        res%ml_features(:,31) = self%delta_ehoao(:)
-        res%ml_features(:,32) = self%delta_eluao(:)
-        res%ml_features(:,33) = self%e_rep_atom(:)
-        res%ml_features(:,34) = self%e_EHT(:)
-        res%ml_features(:,35) = self%e_disp_2(:)
-        res%ml_features(:,36) = self%e_disp_3(:)
-        res%ml_features(:,37) = self%e_ies_ixc(:)
-        res%ml_features(:,38) = self%e_aes(:)
-        res%ml_features(:,39) = self%e_axc(:)
-        res%ml_features(:,40) = e_tot
+        res%ml_features(:,25) = self%ehoao(:)
+        res%ml_features(:,26) = self%eluao(:)
+        res%ml_features(:,27) = self%delta_egap(:)
+        res%ml_features(:,28) = self%delta_chempot(:)
+        res%ml_features(:,29) = self%delta_ehoao(:)
+        res%ml_features(:,30) = self%delta_eluao(:)
+        res%ml_features(:,31) = self%e_rep_atom(:)
+        res%ml_features(:,32) = self%e_EHT(:)
+        res%ml_features(:,33) = self%e_disp_2(:)
+        res%ml_features(:,34) = self%e_disp_3(:)
+        res%ml_features(:,35) = self%e_ies_ixc(:)
+        res%ml_features(:,36) = self%e_aes(:)
+        res%ml_features(:,37) = self%e_axc(:)
+        res%ml_features(:,38) = e_tot
         
     end subroutine
 
-end module xtbml_base
+end module xtbml_uhf

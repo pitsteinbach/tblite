@@ -38,7 +38,7 @@ contains
         real(wp) :: e_gfn2_tot
         integer :: ml_out
         
-        self%n_features = 97
+        self%n_features = 103
         self%a = 1.0_wp
         allocate(self%feature_labels(self%n_features))
         self%feature_labels = [ character(len=20) :: "CN","delta_CN",&
@@ -67,15 +67,16 @@ contains
         &"delta_dipm_Z_x","delta_dipm_Z_y","delta_dipm_Z_z",&
         &"delta_qm_Z",&
         &"delta_qm_Z_xx","delta_qm_Z_xy","delta_qm_Z_yy","delta_qm_Z_xz","delta_qm_Z_yz","delta_qm_Z_zz",&
-        &"response","gap","chem.pot","HOAO","LUAO","E_repulsion","E_EHT",&
-        &"E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
+        &"response","gap","chem.pot","HOAO_a","LUAO_a","HOAO_b","LUAO_b","delta_gap","delta_chem_pot","delta_HOAO","delta_LUAO",&
+        &"E_repulsion","E_EHT","E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
         call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
+        call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
+        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b)
         
-        call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focc(:,1),wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
-        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao,self%eluao)
 
+        call self%get_extended_frontier(mol,wfn)
         
         call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,res)
         allocate(res%w_xtbml(mol%nat),source=0.0_wp)
@@ -128,16 +129,22 @@ contains
         res%ml_features(:,85) = self%response(:)
         res%ml_features(:,86) = self%egap(:)
         res%ml_features(:,87) = self%chempot(:)
-        res%ml_features(:,88) = self%ehoao(:)
-        res%ml_features(:,89) = self%eluao(:)
-        res%ml_features(:,90) = self%e_rep_atom(:)
-        res%ml_features(:,91) = self%e_EHT(:)
-        res%ml_features(:,92) = self%e_disp_2(:)
-        res%ml_features(:,93) = self%e_disp_3(:)
-        res%ml_features(:,94) = self%e_ies_ixc(:)
-        res%ml_features(:,95) = self%e_aes(:)
-        res%ml_features(:,96) = self%e_axc(:)
-        res%ml_features(:,97) = e_tot
+        res%ml_features(:,88) = self%ehoao_a(:)
+        res%ml_features(:,89) = self%eluao_a(:)
+        res%ml_features(:,90) = self%ehoao_b(:)
+        res%ml_features(:,91) = self%eluao_b(:)
+        res%ml_features(:,92) = self%delta_egap(:)
+        res%ml_features(:,93) = self%delta_chempot(:)
+        res%ml_features(:,94) = self%delta_ehoao(:)
+        res%ml_features(:,95) = self%delta_eluao(:)
+        res%ml_features(:,96) = self%e_rep_atom(:)
+        res%ml_features(:,97) = self%e_EHT(:)
+        res%ml_features(:,98) = self%e_disp_2(:)
+        res%ml_features(:,99) = self%e_disp_3(:)
+        res%ml_features(:,100) = self%e_ies_ixc(:)
+        res%ml_features(:,101) = self%e_aes(:)
+        res%ml_features(:,102) = self%e_axc(:)
+        res%ml_features(:,103) = e_tot
         
     end subroutine
 

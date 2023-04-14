@@ -64,8 +64,10 @@ module xtbml_class
         real(wp),ALLOCATABLE ::  response  (:)
         real(wp),ALLOCATABLE ::  egap  (:)
         real(wp),ALLOCATABLE ::  chempot  (:)
-        real(wp),ALLOCATABLE ::  ehoao  (:)
-        real(wp),ALLOCATABLE ::  eluao  (:)
+        real(wp),ALLOCATABLE ::  ehoao_a  (:)
+        real(wp),ALLOCATABLE ::  eluao_a  (:)
+        real(wp),ALLOCATABLE ::  ehoao_b  (:)
+        real(wp),ALLOCATABLE ::  eluao_b  (:)
         real(wp),ALLOCATABLE ::  e_rep_atom  (:)
         real(wp),ALLOCATABLE ::  e_EHT  (:)
         real(wp),ALLOCATABLE ::  e_disp_2  (:)
@@ -74,14 +76,15 @@ module xtbml_class
         real(wp),ALLOCATABLE ::  e_aes  (:)
         real(wp),ALLOCATABLE ::  e_axc (:)
         !energy based features; extensions
-        real(wp),ALLOCATABLE ::  chempot_ext(:)
-        real(wp),ALLOCATABLE ::  e_gap_ext(:)
-        real(wp),ALLOCATABLE ::  eluao_ext(:)
-        real(wp),ALLOCATABLE ::  ehoao_ext(:)
+        real(wp),ALLOCATABLE ::  delta_chempot(:)
+        real(wp),ALLOCATABLE ::  delta_egap(:)
+        real(wp),ALLOCATABLE ::  delta_eluao(:)
+        real(wp),ALLOCATABLE ::  delta_ehoao(:)
     contains
         procedure,private :: allocate => allocate_ml
         procedure :: get_geometry_density_based
         procedure :: get_energy_based
+        procedure :: get_extended_frontier
         !> Generate the xtbml features
         procedure(get_xtbml),deferred :: get_xtbml
         procedure(pack_res),deferred,private :: pack_res
@@ -159,8 +162,10 @@ module xtbml_class
     allocate(self%response(nat),source = 0.0_wp)
     allocate(self%egap(nat),source = 0.0_wp)
     allocate(self%chempot(nat),source = 0.0_wp)
-    allocate(self%ehoao(nat),source = 0.0_wp)
-    allocate(self%eluao(nat),source = 0.0_wp)
+    allocate(self%ehoao_a(nat),source = 0.0_wp)
+    allocate(self%eluao_a(nat),source = 0.0_wp)
+    allocate(self%ehoao_b(nat),source = 0.0_wp)
+    allocate(self%eluao_b(nat),source = 0.0_wp)
     !
     allocate(self%e_rep_atom(nat),source = 0.0_wp)
     allocate(self%e_EHT(nat),source = 0.0_wp)
@@ -170,10 +175,10 @@ module xtbml_class
     allocate(self%e_aes(nat),source = 0.0_wp)
     allocate(self%e_axc(nat),source = 0.0_wp)
     !Extensions
-    allocate( self%chempot_ext(nat),       source = 0.0_wp )
-    allocate( self%e_gap_ext(nat),       source = 0.0_wp )
-    allocate( self%eluao_ext(nat),       source = 0.0_wp )
-    allocate( self%ehoao_ext(nat),       source = 0.0_wp )
+    allocate( self%delta_chempot(nat),       source = 0.0_wp )
+    allocate( self%delta_egap(nat),       source = 0.0_wp )
+    allocate( self%delta_eluao(nat),       source = 0.0_wp )
+    allocate( self%delta_ehoao(nat),       source = 0.0_wp )
     end subroutine allocate_ml
 
     subroutine get_geometry_density_based(self,mol,wfn,integrals,calc)
@@ -307,6 +312,29 @@ module xtbml_class
         enddo
     end subroutine print_out
 
+
+    subroutine get_extended_frontier(self,mol,wfn)
+        use xtbml_functions, only : get_beta,get_chem_pot_ext,get_e_gap_ext,&
+        get_ehoao_ext,get_eluao_ext
+        use mctc_io_convert, only : autoev
+        class(xtbml_type),intent(inout) :: self
+        !> Molecular structure data
+        type(structure_type), intent(in) :: mol
+        !> Wavefunction strcuture data
+        type(wavefunction_type), intent(in) :: wfn
+        real(wp) :: beta(mol%nat,mol%nat),hl_gap
+        call get_beta(mol%nat,mol%id,mol%xyz,beta)
+
+        call get_chem_pot_ext(mol%nat,beta,self%chempot,self%delta_chempot)
+        hl_gap = (wfn%emo(wfn%homo(1),1) - wfn%emo(wfn%homo(1)+1,1))*autoev
+        
+        call get_e_gap_ext(mol%nat,hl_gap,beta,self%egap,self%delta_egap)
+
+        call get_ehoao_ext(mol%nat,self%delta_chempot,self%delta_egap,self%delta_ehoao)
+
+        call get_eluao_ext(mol%nat,self%delta_chempot,self%delta_egap,self%delta_eluao)
+
+    end subroutine get_extended_frontier
 
 end module xtbml_class
  

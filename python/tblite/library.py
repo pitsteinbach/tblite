@@ -353,7 +353,7 @@ def _get_xtbml_labels(getter):
         _nfeatures = ffi.new("int *")
         error_check(lib.tblite_get_result_xtbml_n_features)(res, _nfeatures)
         labels = list()
-        for i in _nfeatures[0]:
+        for i in range(1,_nfeatures[0]+1):
             _index = ffi.new("const int*",i)
             _message = ffi.new("char[]", 512)
             error_check(getter)(res, _message,ffi.NULL,_index)
