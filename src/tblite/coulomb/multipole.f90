@@ -215,6 +215,43 @@ subroutine get_energy(self, mol, cache, wfn, energies)
    call get_kernel_energy(mol, self%qkernel, wfn%qpat(:, :, 1), energies)
 end subroutine get_energy
 
+!> Get anisotropic electrostatic energy
+subroutine get_energy_xtb(self, mol, cache, wfn, energies)
+   !> Instance of the multipole container
+   class(damped_multipole), intent(in) :: self
+   !> Molecular structure data
+   type(structure_type), intent(in) :: mol
+   !> Wavefunction data
+   type(wavefunction_type), intent(in) :: wfn
+   !> Electrostatic energy
+   real(wp), intent(inout) :: energies(:)
+   !> Reusable data container
+   type(container_cache), intent(inout) :: cache
+
+   real(wp), allocatable :: vs(:), vd(:, :), vq(:, :),tri_mat(:,:,:),m_rq(:,:,:), vd1(:,:)
+   type(coulomb_cache), pointer :: ptr
+   integer :: i,j
+
+   call view(cache, ptr)
+
+   allocate(vs(mol%nat), vd(3, mol%nat), vq(6, mol%nat),tri_mat(mol%nat,mol%nat),m_rq(3,mol%nat,mol%nat))
+
+   allocate(tri_mat(3,mol%nat,mol%nat),vd1(3,mol%nat), source=0.0_wp) 
+   do i = 1, mol%nat
+      tri_mat(:,i,i+1:) = 1.0_wp
+   end do
+   write(*,*) tri_mat
+   call gemv(ptr%amat_sd, wfn%qat(:, 1), vd)
+   m_rq = ptr%amat_sd * tri_mat
+   m_rq = m_rq * wfn%qat(:,1)
+   call gemmv(m_rq,wfn%dpat(:,:,1),vd1)
+   write(*,*) sum(wfn%dpat(:, :, 1) * vd, 1) + sum(vd1, 1) 
+   call gemv(ptr%amat_dd, wfn%dpat(:, :, 1), vd, beta=1.0_wp, alpha=0.5_wp)
+   call gemv(ptr%amat_sq, wfn%qat(:, 1), vq)
+   energies(:) = energies + sum(wfn%dpat(:, :, 1) * vd, 1) + sum(wfn%qpat(:, :, 1) * vq, 1)
+
+end subroutine get_energy_xtb
+
 !> Get multipolar anisotropic exchange-correlation kernel
 subroutine get_kernel_energy(mol, kernel, mpat, energies)
    !> Molecular structure data
