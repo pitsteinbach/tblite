@@ -16,9 +16,10 @@ module xtbml_functions
     subroutine get_rcov(mol)
         use tblite_data_covrad, only: get_covalent_rad
         type(structure_type), intent(in) :: mol
-        if (.not.allocated(rcov)) then
-            allocate(rcov(mol%nid),source=0.0_wp)
+        if (allocated(rcov)) then
+            deallocate(rcov)
         end if
+        allocate(rcov(mol%nid),source=0.0_wp)
         rcov(:) = get_covalent_rad(mol%num)
     end subroutine
 

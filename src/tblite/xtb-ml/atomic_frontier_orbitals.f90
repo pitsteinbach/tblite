@@ -26,7 +26,7 @@
 ! chempot: efffective Fermi level per atom (as 0.5*(eh+el)
 ! ehoaoa,b: highest occ. atomic orbital for (alpha, beta) part
 ! eluaoa,b: lowest virt. atomic orbital for (alpha, beta) part
-subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,egap,chempot,ehoaoa,eluaoa,ehoaob,eluaob)
+subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,egap,chempot,ehoaoa,eluaoa,ehoaob,eluaob,print)
    use mctc_env, only : wp,sp
    !use xtb_mctc_accuracy, only : wp, sp
    use mctc_io_convert, only : autoev
@@ -41,6 +41,7 @@ subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,eg
    real(wp),allocatable :: po(:,:),pv(:,:)
    real(wp) :: occa,occb,tmp,tmp2,ps,virt,tmp3,weight,osite,vsite
    real(wp), parameter :: damp=0.5_wp ! damping in response function (in eV)
+   logical, intent(in) :: print
    allocate(po(nat,nao),pv(nat,nao))
   
    po=0.0_wp
@@ -123,12 +124,13 @@ subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,eg
 
    ehoaoa=0.0_wp
    eluaoa=0.0_wp
-
+   if (print) then
    write(*,*)
    write(*,*) "  -------------------------"
    write(*,*) "  atomic frontier MO (alpha) info "
    write(*,*) "  -------------------------"
    write(*,*) "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO (eV)    LUAO (eV)"
+   end if
    ! now get the atomic frontier orbitals
    tmp=0.0_wp
    do m=1,nat
@@ -179,11 +181,13 @@ subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,eg
           eluaoa(m)=chempot(m)+egap(m)
         enddo !  occ
       endif
- 
+      if (print) then
       write(*,'(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m,response(m)*(autoev**2),egap(m),chempot(m),ehoaoa(m),eluaoa(m)
+      end if
    enddo
+   if (print) then
    write(*,*)
-
+   end if
    po=0.0_wp
    pv=0.0_wp
 
@@ -256,12 +260,13 @@ subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,eg
 
    ehoaob=0.0_wp
    eluaob=0.0_wp
-
+   if (print) then
    write(*,*)
    write(*,*) "  -------------------------"
    write(*,*) "  atomic frontier MO (beta) info "
    write(*,*) "  -------------------------"
    write(*,*) "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO_b (eV)    LUAO_b (eV)"
+   end if
    ! now get the atomic frontier orbitals
    tmp=0.0_wp
    do m=1,nat
@@ -312,11 +317,14 @@ subroutine atomic_frontier_orbitals(nat,nao,focca,foccb,eps,aoat,C,S,response,eg
           eluaob(m)=chempot(m)+egap(m)
         enddo !  occ
       endif
- 
+      if (print) then
       write(*,'(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m,response(m)*(autoev**2),egap(m),chempot(m),ehoaob(m),eluaob(m)
-
+      end if
    enddo
-   write(*,*)
+   if (print) then
+      write(*,*)
+   end if
+   
 
    deallocate(po,pv)
 end subroutine atomic_frontier_orbitals

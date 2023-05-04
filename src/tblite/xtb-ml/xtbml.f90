@@ -37,6 +37,7 @@ contains
         integer, intent(in) :: prlevel
         real(wp) :: e_gfn2_tot
         integer :: ml_out
+        logical :: print_afo
         
         self%n_features = 40
         self%a = 1.0_wp
@@ -53,21 +54,23 @@ contains
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
         call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
-       
+        print_afo = .false.
+        if (prlevel > 1) then
+            print_afo = .true.
+        end if
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
-        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b)
+        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b,print_afo)
 
         call self%get_extended_frontier(mol,wfn)
         
         call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,res)
-        allocate(res%w_xtbml(mol%nat),source=0.0_wp)
-        res%w_xtbml = self%w_tot
+        
         if (prlevel > 1) then
             ml_out = 42
             open(file='ml_feature_tblite.csv', newunit=ml_out)
             call self%print_out(ml_out,mol%nat,mol%num,mol%id,res)
         endif
-
+        !deallocate(self%feature_labels)
     end subroutine get_xtbml
 
     subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,res)
@@ -77,10 +80,12 @@ contains
         real(wp), intent(in) :: e_tot
         type(results_type),intent(inout) :: res
         class(xtbml_base_type), intent(inout) :: self
+        
         res%n_features = self%n_features
-        allocate(res%xtbml_labels(self%n_features),source=self%feature_labels)
+        call move_alloc(self%feature_labels,res%xtbml_labels)
+        call move_alloc(self%w_tot,res%w_xtbml)
         allocate(res%ml_features(nat,self%n_features),source=0.0_wp)
-
+        
         res%ml_features(:,1) = self%cn_atom(:)
         res%ml_features(:,2) = self%delta_cn(:)
         call pack_shellwise(self%mulliken_shell,res,3,at2nsh,nat)

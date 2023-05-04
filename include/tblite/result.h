@@ -264,6 +264,6 @@ tblite_get_result_xtbml_n_features(tblite_error error,
 TBLITE_API_ENTRY void TBLITE_API_CALL
 tblite_get_result_xtbml_labels(tblite_error error,
                                      tblite_result res,
-                                     char* ,
-                                     const int* /* buffersize */,
-                                     const int* /*index of label array*/);
+                                     char* message,
+                                     const int* buffersize/* buffersize */,
+                                     const int* index/*index of label array*/);

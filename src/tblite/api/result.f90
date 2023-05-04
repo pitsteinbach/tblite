@@ -598,7 +598,7 @@ type(vp_result), pointer :: res
 integer(c_int), intent(out) :: n_features
 logical :: ok
 
-if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_weights"
+if (debug) print '("[Info]", 1x, a)', "get_result_xtbml_n_features"
 
 call get_result(verror, vres, error, res, ok)
 if (.not.ok) return
@@ -623,7 +623,6 @@ type(vp_result), pointer :: res
 character(kind=c_char), intent(out) :: charptr(*)
 integer(c_int), intent(in), optional :: buffersize
 integer(c_int), intent(in) :: index
-character(len=20) :: message
 logical :: ok
 integer :: max_length
 

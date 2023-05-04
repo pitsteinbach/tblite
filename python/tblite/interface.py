@@ -229,7 +229,6 @@ class Result:
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
         "xtbml" : library.get_xtbml,
         "xtbml weights" : library.get_w_xtbml,
-        #"xtbml n_features" : library.get_xtbml_n_features,
         "xtbml labels" : library.get_xtbml_labels
     }
     _setter = {}

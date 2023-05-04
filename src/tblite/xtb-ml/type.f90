@@ -87,30 +87,31 @@ module xtbml_class
         procedure :: get_extended_frontier
         !> Generate the xtbml features
         procedure(get_xtbml),deferred :: get_xtbml
-        procedure(pack_res),deferred,private :: pack_res
+        procedure(pack_res),deferred :: pack_res
         procedure :: print_out
     end type xtbml_type
         
     !<
     abstract interface
+        !> Routine that computed the xtbml features
         subroutine get_xtbml(self,mol,wfn,integrals,erep,calc,ccache,dcache,prlevel,res)
             import :: wp, structure_type, wavefunction_type,integral_type,&
                     xtb_calculator,container_cache,results_type,xtbml_type
-        class(xtbml_type),intent(inout) :: self
-        !> Molecular structure data
-        type(structure_type), intent(in) :: mol
-        !> Wavefunction strcuture data
-        type(wavefunction_type), intent(in) :: wfn
-        type(integral_type) :: integrals
-        !> Single-point calculator
-        type(xtb_calculator), intent(in) :: calc
-        type(container_cache),intent(inout) :: ccache,dcache
-        type(results_type), intent(inout) :: res
-        real(wp), INTENT(IN) ::  erep(mol%nat)
-        integer, intent(in) :: prlevel
+            class(xtbml_type),intent(inout) :: self
+            !> Molecular structure data
+            type(structure_type), intent(in) :: mol
+            !> Wavefunction strcuture data
+            type(wavefunction_type), intent(in) :: wfn
+            type(integral_type) :: integrals
+            !> Single-point calculator
+            type(xtb_calculator), intent(in) :: calc
+            type(container_cache),intent(inout) :: ccache,dcache
+            type(results_type), intent(inout) :: res
+            real(wp), INTENT(IN) ::  erep(mol%nat)
+            integer, intent(in) :: prlevel
        
         end subroutine get_xtbml
-
+        !> Routine to pack the xtbml features into the result container
         subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,res)
             import :: wp,results_type, xtbml_type
             class(xtbml_type),intent(inout) :: self
@@ -122,63 +123,64 @@ module xtbml_class
             
     end interface
     contains
+
     subroutine allocate_ml(self,nat,nshell)
-    implicit none
-    class(xtbml_type) :: self
-    integer,intent(in)  :: nat,nshell
-    allocate( self%w_tot (nat),     source = 0.0_wp )
-    !
-    allocate( self%cn_atom (nat),   source = 0.0_wp )
-    allocate( self%delta_cn (nat),  source = 0.0_wp )
-    !
-    allocate(self%mulliken_shell(nshell) ,source = 0.0_wp)
-    allocate(self%dipm_shell(nshell) ,source = 0.0_wp)
-    allocate(self%qm_shell(nshell) ,source = 0.0_wp)
-    allocate(self%partial_charge_atom(nat) ,source = 0.0_wp)
-    allocate(self%delta_partial_charge(nat) ,source = 0.0_wp)
-    allocate(self%dipm_atom(nat) ,source = 0.0_wp)
-    allocate(self%delta_dipm(nat) ,source = 0.0_wp)
-    allocate(self%qm_atom(nat) ,source = 0.0_wp)
-    allocate(self%delta_qm(nat) ,source = 0.0_wp)
-    allocate(self%delta_dipm_e(nat) ,source = 0.0_wp)
-    allocate(self%delta_qm_e(nat) ,source = 0.0_wp)
-    allocate(self%delta_dipm_Z(nat) ,source = 0.0_wp)
-    allocate(self%delta_qm_Z(nat) ,source = 0.0_wp)
-    !
-    allocate(self%dipm_shell_xyz(3,nshell),source = 0.0_wp)
-    allocate(self%dipm_atom_xyz(3,nat),source = 0.0_wp)
-    allocate(self%delta_dipm_xyz(3,nat),source = 0.0_wp)
-    allocate(self%qm_shell_xyz(6,nshell),source = 0.0_wp)
-    allocate(self%qm_atom_xyz(6,nat),source = 0.0_wp)
-    allocate(self%delta_qm_xyz(6,nat),source = 0.0_wp)
-    !
-    allocate(self%delta_dipm_e_xyz(3,nat),source = 0.0_wp)
-    allocate(self%delta_qm_e_xyz(6,nshell),source = 0.0_wp)
-    allocate(self%delta_dipm_Z_xyz(3,nat),source = 0.0_wp)
-    allocate(self%delta_qm_Z_xyz(6,nshell),source = 0.0_wp)
-    !
-    !
-    !seperate alpha and beta
-    allocate(self%response(nat),source = 0.0_wp)
-    allocate(self%egap(nat),source = 0.0_wp)
-    allocate(self%chempot(nat),source = 0.0_wp)
-    allocate(self%ehoao_a(nat),source = 0.0_wp)
-    allocate(self%eluao_a(nat),source = 0.0_wp)
-    allocate(self%ehoao_b(nat),source = 0.0_wp)
-    allocate(self%eluao_b(nat),source = 0.0_wp)
-    !
-    allocate(self%e_rep_atom(nat),source = 0.0_wp)
-    allocate(self%e_EHT(nat),source = 0.0_wp)
-    allocate(self%e_disp_2(nat),source = 0.0_wp)
-    allocate(self%e_disp_3(nat),source = 0.0_wp)
-    allocate(self%e_ies_ixc(nat),source = 0.0_wp)
-    allocate(self%e_aes(nat),source = 0.0_wp)
-    allocate(self%e_axc(nat),source = 0.0_wp)
-    !Extensions
-    allocate( self%delta_chempot(nat),       source = 0.0_wp )
-    allocate( self%delta_egap(nat),       source = 0.0_wp )
-    allocate( self%delta_eluao(nat),       source = 0.0_wp )
-    allocate( self%delta_ehoao(nat),       source = 0.0_wp )
+        implicit none
+        class(xtbml_type) :: self
+        integer,intent(in)  :: nat,nshell
+        allocate( self%w_tot (nat),     source = 0.0_wp )
+        !
+        allocate( self%cn_atom (nat),   source = 0.0_wp )
+        allocate( self%delta_cn (nat),  source = 0.0_wp )
+        !
+        allocate(self%mulliken_shell(nshell) ,source = 0.0_wp)
+        allocate(self%dipm_shell(nshell) ,source = 0.0_wp)
+        allocate(self%qm_shell(nshell) ,source = 0.0_wp)
+        allocate(self%partial_charge_atom(nat) ,source = 0.0_wp)
+        allocate(self%delta_partial_charge(nat) ,source = 0.0_wp)
+        allocate(self%dipm_atom(nat) ,source = 0.0_wp)
+        allocate(self%delta_dipm(nat) ,source = 0.0_wp)
+        allocate(self%qm_atom(nat) ,source = 0.0_wp)
+        allocate(self%delta_qm(nat) ,source = 0.0_wp)
+        allocate(self%delta_dipm_e(nat) ,source = 0.0_wp)
+        allocate(self%delta_qm_e(nat) ,source = 0.0_wp)
+        allocate(self%delta_dipm_Z(nat) ,source = 0.0_wp)
+        allocate(self%delta_qm_Z(nat) ,source = 0.0_wp)
+        !
+        allocate(self%dipm_shell_xyz(3,nshell),source = 0.0_wp)
+        allocate(self%dipm_atom_xyz(3,nat),source = 0.0_wp)
+        allocate(self%delta_dipm_xyz(3,nat),source = 0.0_wp)
+        allocate(self%qm_shell_xyz(6,nshell),source = 0.0_wp)
+        allocate(self%qm_atom_xyz(6,nat),source = 0.0_wp)
+        allocate(self%delta_qm_xyz(6,nat),source = 0.0_wp)
+        !
+        allocate(self%delta_dipm_e_xyz(3,nat),source = 0.0_wp)
+        allocate(self%delta_qm_e_xyz(6,nshell),source = 0.0_wp)
+        allocate(self%delta_dipm_Z_xyz(3,nat),source = 0.0_wp)
+        allocate(self%delta_qm_Z_xyz(6,nshell),source = 0.0_wp)
+        !
+        !
+        !seperate alpha and beta
+        allocate(self%response(nat),source = 0.0_wp)
+        allocate(self%egap(nat),source = 0.0_wp)
+        allocate(self%chempot(nat),source = 0.0_wp)
+        allocate(self%ehoao_a(nat),source = 0.0_wp)
+        allocate(self%eluao_a(nat),source = 0.0_wp)
+        allocate(self%ehoao_b(nat),source = 0.0_wp)
+        allocate(self%eluao_b(nat),source = 0.0_wp)
+        !
+        allocate(self%e_rep_atom(nat),source = 0.0_wp)
+        allocate(self%e_EHT(nat),source = 0.0_wp)
+        allocate(self%e_disp_2(nat),source = 0.0_wp)
+        allocate(self%e_disp_3(nat),source = 0.0_wp)
+        allocate(self%e_ies_ixc(nat),source = 0.0_wp)
+        allocate(self%e_aes(nat),source = 0.0_wp)
+        allocate(self%e_axc(nat),source = 0.0_wp)
+        !Extensions
+        allocate( self%delta_chempot(nat),       source = 0.0_wp )
+        allocate( self%delta_egap(nat),       source = 0.0_wp )
+        allocate( self%delta_eluao(nat),       source = 0.0_wp )
+        allocate( self%delta_ehoao(nat),       source = 0.0_wp )
     end subroutine allocate_ml
 
     subroutine get_geometry_density_based(self,mol,wfn,integrals,calc)
@@ -267,8 +269,8 @@ module xtbml_class
         real(wp), allocatable :: e_ao(:),e_disp(:)
         
         call calc%coulomb%aes2%get_AXC(mol,wfn,self%e_axc)
-        call calc%coulomb%aes2%get_energy(mol,ccache,wfn,self%e_aes)
-        self%e_aes = self%e_aes - self%e_axc
+        call calc%coulomb%aes2%get_energy_aes_xtb(mol,ccache,wfn,self%e_aes)
+        
         call calc%coulomb%es2%get_energy(mol,ccache,wfn,self%e_ies_ixc)
         call calc%coulomb%es3%get_energy(mol,ccache,wfn,self%e_ies_ixc)
         call calc%dispersion_2body%update(mol,dcache2)
@@ -298,9 +300,9 @@ module xtbml_class
         integer :: i,j
         write(out,'(a)', advance="no") "Atom,w_xtb_tot"//','
         do i=1, self%n_features-1
-            write(out,'(a)', advance="no") trim(self%feature_labels(i))//','
+            write(out,'(a)', advance="no") trim(res%xtbml_labels(i))//','
         end do
-        write(out,'(a)') self%feature_labels(self%n_features)
+        write(out,'(a)') res%xtbml_labels(self%n_features)
 
         do i = 1, nat
             write(out,'(i2,a)', advance="no") at(id2at(i)),',' 
@@ -335,6 +337,11 @@ module xtbml_class
         call get_eluao_ext(mol%nat,self%delta_chempot,self%delta_egap,self%delta_eluao)
 
     end subroutine get_extended_frontier
+
+    subroutine compute_a_array(self,mol,wfn,a_array)
+
+    end subroutine compute_a_array
+
 
 end module xtbml_class
  

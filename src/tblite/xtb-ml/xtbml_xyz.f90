@@ -37,6 +37,7 @@ contains
         integer, intent(in) :: prlevel
         real(wp) :: e_gfn2_tot
         integer :: ml_out
+        logical :: print_afo
         
         self%n_features = 103
         self%a = 1.0_wp
@@ -72,8 +73,13 @@ contains
         !get individual coulombic energy contributions in an atomwise vector
         call self%get_geometry_density_based(mol,wfn,integrals,calc)
         call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
+
+        print_afo = .false.
+        if (prlevel > 1) then
+            print_afo = .true.
+        end if
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
-        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b)
+        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b,print_afo)
         
 
         call self%get_extended_frontier(mol,wfn)

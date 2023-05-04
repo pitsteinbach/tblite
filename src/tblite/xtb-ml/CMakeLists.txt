@@ -21,6 +21,8 @@ list(
   "${dir}/atomic_frontier_orbitals.f90"
   "${dir}/xtbml.f90"
   "${dir}/type.f90"
+  "${dir}/functions.f90"
+  "${dir}/xtbml_xyz.f90"
 )
 
 set(srcs "${srcs}" PARENT_SCOPE)

@@ -39,7 +39,7 @@ module tblite_results
       !> xtbml partitioning weights based on the totel GFN2 energy
       real(wp), allocatable :: w_xtbml(:)
       !> number of xtbml features
-      integer :: n_features = 34
+      integer :: n_features = 40
       !> labels of the xtbml features
       character(len=20),allocatable :: xtbml_labels(:)
    end type results_type
