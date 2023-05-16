@@ -426,6 +426,7 @@ class Calculator(Structure):
         "temperature": library.set_calculator_temperature,
         "verbosity": library.set_calculator_verbosity,
         "xtbml": library.set_calculator_xtbml,
+        "xtbml_a_array" : library.set_calculator_xtbml_a_array,
     }
     _getter = {
         "angular-momenta": library.get_calculator_angular_momenta,

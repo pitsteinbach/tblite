@@ -33,6 +33,7 @@ from .interface import Calculator
 import ase.calculators.calculator
 from ase.atoms import Atoms
 from ase.units import Hartree, Bohr, kB
+import numpy as np
 
 
 class TBLite(ase.calculators.calculator.Calculator):
@@ -113,6 +114,8 @@ class TBLite(ase.calculators.calculator.Calculator):
         "electronic_temperature": 300.0,
         "cache_api": True,
         "verbosity": 1,
+        "xtbml":0,
+        #"xtbml_a_array":np.array([1.0]),
     }
 
     _res = None
@@ -174,6 +177,12 @@ class TBLite(ase.calculators.calculator.Calculator):
             
             if "xtbml" in changed_parameters:
                 self._xtb.set("xtbml",self.parameters.xtbml)
+            
+            if "xtbml_a_array" in changed_parameters:
+                self._xtb.set("xtbml_a_array",self.parameters.xtbml_a_array)
+
+            if "charge" in changed_parameters:
+                self._xtb.set("charge",self.parameters.charge)
 
         return changed_parameters
 
@@ -222,8 +231,15 @@ class TBLite(ase.calculators.calculator.Calculator):
         try:
             _cell = self.atoms.cell
             _periodic = self.atoms.pbc
-            _charge = self.atoms.get_initial_charges().sum()
-            _uhf = int(self.atoms.get_initial_magnetic_moments().sum().round())
+            #print(self.parameters)
+            if self.parameters.charge:
+                _charge = self.parameters.charge
+            else:
+                _charge = self.atoms.get_initial_charges().sum()
+            if self.parameters.uhf:
+                _uhf = self.parameters.uhf
+            else:
+                _uhf = int(self.atoms.get_initial_magnetic_moments().sum().round())
 
             calc = Calculator(
                 self.parameters.method,
@@ -241,6 +257,8 @@ class TBLite(ase.calculators.calculator.Calculator):
             calc.set("max-iter", self.parameters.max_iterations)
             calc.set("verbosity", self.parameters.verbosity)
             calc.set("xtbml",self.parameters.xtbml)
+            if self.parameters.xtbml_a_array:
+                calc.set("xtbml_a_array",self.parameters.xtbml_a_array)
 
         except RuntimeError:
             raise ase.calculators.calculator.InputError(

@@ -435,7 +435,12 @@ def get_calculator_orbital_map(ctx, calc):
     )
     return _map
 
+def set_calculator_xtbml_a_array(ctx,calc,a_array):
 
+    _array = ffi.cast("double*", a_array.ctypes.data)
+    _len_array = ffi.cast("int",a_array.size)
+
+    context_check(lib.tblite_set_calculator_xtbml_a_array)(ctx,calc,_array,_len_array) 
 
 
 set_calculator_max_iter = context_check(lib.tblite_set_calculator_max_iter)
