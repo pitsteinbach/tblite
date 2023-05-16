@@ -42,7 +42,7 @@ contains
         self%n_features = 103
         self%a = 1.0_wp
         allocate(self%feature_labels(self%n_features))
-        self%feature_labels = [ character(len=20) :: "CN","delta_CN",&
+        self%feature_labels = [ character(len=30) :: "CN","delta_CN",&
         &"q_s","q_p","q_d",&
         &"dipm_s","dipm_p","dipm_d",&
         &"dipm_s_x","dipm_s_y","dipm_s_z",&
@@ -81,7 +81,7 @@ contains
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
         integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b,print_afo)
         
-
+        call self%compute_a_array(mol,wfn,calc)
         call self%get_extended_frontier(mol,wfn)
         
         call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,res)

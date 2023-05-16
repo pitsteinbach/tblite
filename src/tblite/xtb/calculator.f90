@@ -82,6 +82,8 @@ module tblite_xtb_calculator
       type(container_list), allocatable :: interactions
       !> Compute xtbml features, 1 base version 2 print with multipole vectors
       integer :: xtbml = 0
+      !> array of a values, for the extended xtbml features
+      real(wp), allocatable :: a_array(:)
    contains
       !> Get information about density dependent quantities used in the energy
       procedure :: variable_info

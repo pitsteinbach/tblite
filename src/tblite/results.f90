@@ -41,7 +41,7 @@ module tblite_results
       !> number of xtbml features
       integer :: n_features = 40
       !> labels of the xtbml features
-      character(len=20),allocatable :: xtbml_labels(:)
+      character(len=30),allocatable :: xtbml_labels(:)
    end type results_type
 
 end module tblite_results

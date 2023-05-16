@@ -154,11 +154,23 @@ tblite_set_calculator_save_integrals(tblite_context ctx,
 ///
 /// @param ctx: Context handle
 /// @param calc: Calculator instance
-/// @param save_integrals: Flag to enable storing of integrals
+/// @param xtbml: Flag to compute xtbml features
 TBLITE_API_ENTRY void TBLITE_API_CALL
 tblite_set_calculator_xtbml(tblite_context ctx,
                                      tblite_calculator calc,
                                      int xtbml);
+
+/// Set the flag in the calculator to retain the integral matrices
+///
+/// @param ctx: Context handle
+/// @param calc: Calculator instance
+/// @param a_array: Pointer to an array of a values used for extended xtbml features
+/// @param len_array: length of teh array entered, used for proper allocation
+TBLITE_API_ENTRY void TBLITE_API_CALL
+tblite_set_calculator_xtbml_a_array(tblite_context ctx,
+                                     tblite_calculator calc,
+                                     double* a_array,
+                                     int len_array);
 
 /// Add container to calculator object.
 ///

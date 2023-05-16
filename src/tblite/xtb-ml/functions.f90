@@ -2,16 +2,47 @@ module xtbml_functions
     use mctc_env, only : wp
     use mctc_io, only : structure_type
     use tblite_results, only : results_type
-    real(wp),allocatable :: rcov(:)
-    real(wp) :: dampening_fact 
+    real(wp),allocatable :: rcov(:),inv_cn_a(:,:,:)
+    
     real(wp),parameter :: k1 = 16.0_wp
     
     contains
 
-    subroutine set_dampening_factor(a)
-        real(wp), intent(in) ::a
-        dampening_fact = a
-    end subroutine
+
+    subroutine populate_inv_cn_array(nat,at,xyz,a)
+        integer, intent(in):: nat, at(nat)
+        real(wp), intent(in) :: a(:),xyz(:,:)
+        real(wp) :: result
+        integer :: i,j,k
+        n_a = size(a)
+        !$acc enter data create(inv_cn_a(:,:, :))
+        !$acc kernels default(present)
+        if (allocated(inv_cn_a)) then
+            deallocate(inv_cn_a)
+        end if
+        allocate(inv_cn_a(nat,nat,size(a)),source=0.0_wp)
+        !$acc end kernels
+        !$acc enter data copyin( a,nat, at(:),xyz(:, :),a(:))
+
+        !$acc parallel private(result)
+
+        !$acc loop gang vector collapse(3)
+
+        do k = 1, n_a
+            do i = 1, nat
+                do j = 1, nat
+                    !if (i == j) cycle 
+                    call inv_cn(nat,i,j,at,xyz,a(k),result)
+                    !$acc atomic
+                    inv_cn_a(i,j,k) = result 
+                enddo
+            enddo  
+        enddo
+        !$acc end parallel
+
+        !$acc exit data copyout(inv_cn_a(:,:, :))
+
+    end subroutine populate_inv_cn_array
 
     subroutine get_rcov(mol)
         use tblite_data_covrad, only: get_covalent_rad
@@ -37,32 +68,38 @@ module xtbml_functions
 
     end subroutine
 
-    subroutine get_delta_cn(nat,cn,at,xyz,delta_cn)
+    subroutine get_delta_cn(nat,n_a,cn,at,xyz,delta_cn)
         implicit none 
-        integer, INTENT(IN) :: nat, at(nat)
+        integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: cn(nat), xyz(3,nat)
-        real(wp), INTENT(OUT) :: delta_cn(nat)
-        integer :: i,j
-        real(wp) :: result
-        result = 0.0_wp
+        real(wp), INTENT(OUT) :: delta_cn(nat,n_a)
+        integer :: i,j,k
+        
+        !$acc enter data create(delta_cn(:, :))
+        !$acc kernels default(present)
         delta_cn = 0.0_wp
+        !$acc end kernels
+        !$acc enter data copyin( nat,n_a,cn(:), inv_cn_a(:,:,:))
 
-        do i = 1, nat
-           ! write(*,*) xyz(1:3,i)
-            do j = 1, nat
-                if (i == j) cycle 
-                call inv_cn(nat,i,j,at,xyz,result)
-                !write(*,*) result
-                delta_cn(i) = delta_cn(i) + cn(j) / result
+        !$acc loop gang vector collapse(3)
+        do k = 1, n_a
+            do i = 1, nat
+                do j = 1, nat
+                    if (i == j) cycle 
+                    !$acc atomic
+                    delta_cn(i,k) = delta_cn(i,k) + cn(j) / inv_cn_a(i,j,k)
+                enddo
             enddo
         enddo
+        !$acc end parallel
+         !$acc exit data copyout(delta_cn(:, :))
     end subroutine
 
-    subroutine inv_cn(nat,a,b,at,xyz,result)
+    subroutine inv_cn(nat,a,b,at,xyz,dampening_fact,result)
         implicit none
         integer, INTENT(IN) :: a, b,nat
         integer, INTENT(IN) :: at(:)
-        real(wp), intent(in)  :: xyz(3,nat) 
+        real(wp), intent(in)  :: xyz(3,nat), dampening_fact
         real(wp), INTENT(OUT) :: result
         real(wp) :: rab(3), r, rco, r2
      
@@ -113,25 +150,30 @@ module xtbml_functions
 
     end subroutine
 
-    subroutine get_delta_partial(nat,atom_partial,at,xyz,cn,delta_partial)
+    subroutine get_delta_partial(nat,n_a,atom_partial,at,xyz,cn,delta_partial)
         implicit none 
-        integer, INTENT(IN) :: nat , at(nat)
+        integer, INTENT(IN) :: nat , at(nat),n_a
         real(wp), INTENT(IN) :: atom_partial(nat), xyz(3,nat), cn(nat)
-        real(wp), INTENT(OUT) :: delta_partial(nat)
-        integer :: a, b
+        real(wp), INTENT(OUT) :: delta_partial(nat,n_a)
+        integer :: a, b, k
         real(wp) :: result
-
+        !$acc enter data create(delta_partial(:, :))
+        !$acc kernels default(present)
         delta_partial = 0.0_wp
-        
-        do a = 1, nat
-            do b = 1, nat
-                !if (a == b) cycle 
-                call inv_cn(nat,a,b,at,xyz,result)
-                delta_partial(a) = delta_partial(a) + atom_partial(b) / (result*(cn(b)+1))
-            enddo
-            
-        enddo
+        !$acc end kernels
+        !$acc enter data copyin( nat,n_a, atom_partial(:),inv_cn_a(:,:,:),cn(:))
 
+        !$acc loop gang vector collapse(3)
+        do k =1,n_a
+            do a = 1, nat
+                do b = 1, nat
+                    !$acc atomic
+                    delta_partial(a,k) = delta_partial(a,k) + atom_partial(b) / (inv_cn_a(a,b,k)*(cn(b)+1))
+                enddo
+            enddo
+        enddo
+        !$acc end parallel
+        !$acc exit data copyout(delta_partial(:, :))
     end subroutine
 
     subroutine sum_up_mm(nat,nshell,aoat2,ash,dipm_shell,qm_shell,dipm_at,qm_at)
@@ -151,56 +193,81 @@ module xtbml_functions
 
     end subroutine
 
-    subroutine get_delta_mm(nat,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp)
+    subroutine get_delta_mm(nat,n_a,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp)
         implicit none 
-        integer, INTENT(IN) :: nat, at(nat)
+        integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: dipm(3,nat), xyz(3,nat), qp(6,nat), q(nat), cn(nat)
-        real(wp), INTENT(OUT) :: delta_dipm(3,nat), delta_qp(6,nat)
-        integer :: a, b
-        real(wp) :: result, r_ab(3), qp_part(6,nat)
+        real(wp), INTENT(OUT) :: delta_dipm(3,nat,n_a), delta_qp(6,nat,n_a)
+        integer :: a, b,k
+        real(wp) :: result, r_ab(3), qp_part(6,nat,n_a), sum_qm(6)
 
-        !$acc enter data create(delta_dipm(:, :), delta_qp(:, :),qp_part(:,:))
+        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
         !$acc kernels default(present)
         delta_dipm = 0.0_wp
         delta_qp = 0.0_wp
         qp_part = 0.0_wp
         !$acc end kernels
-        !$acc enter data copyin( nat, , q(:), dipm(:, :), at(:),&
-        !$acc& qpint(:, :, :),xyz(:, :)),cn(:)
+        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
+        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
 
         !$acc parallel private(r_ab,result)
 
-        !$acc loop gang vector collapse(2)
-
+        !$acc loop gang vector collapse(3)
+        do k =1 ,n_a
         do a = 1, nat
             do b = 1, nat
-                !if (a == b) cycle 
-                call inv_cn(nat,a,b,at,xyz,result)
+                
+                result = inv_cn_a(a,b,k)
+                !if (a == b) cycle
                 r_ab = xyz(:,a) - xyz(:,b)
                 !$acc atomic
-                delta_dipm(:,a) = delta_dipm(:,a) + (dipm(:,b) - r_ab(:) * q(b)) / (result*(cn(b)+1))
+                delta_dipm(:,a,k) = delta_dipm(:,a,k) + (dipm(:,b) - r_ab(:) * q(b)) / (result*(cn(b)+1))
                 !sorting of qp xx,xy,yy,xz,yz,zz
                 !$acc atomic
-                delta_qp(1,a) = delta_qp(1,a) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) + r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
+                delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) + r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(2,a) = delta_qp(2,a) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) + r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) + r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(3,a) = delta_qp(3,a) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) + r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) + r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(4,a) = delta_qp(4,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) + r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) + r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(5,a) = delta_qp(5,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) + r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) + r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(6,a) = delta_qp(6,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) + r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) + r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
+                qp_part(:,a,k) = qp_part(:,a,k) + qp(:,b) / (result*(cn(b)+1))
             enddo
+        enddo
         enddo
         !$acc end parallel
 
-        !$acc exit data copyout(delta_dipm(:, :), delta_qp(:, :), qp_part(:,:))
+        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
+        call remove_trac_qp(nat,n_a,delta_qp,qp_part)
+    
+    end subroutine
 
-        call remove_trac_qp(nat,delta_qp,qp_part)
+    subroutine comp_norm_3(ndim,n_a,dipm,qm,dipm_norm,qm_norm)
+        implicit none
+        integer, INTENT(IN) :: ndim,n_a
+        real(wp), INTENT(IN) :: dipm(3,ndim,n_a), qm(6,ndim,n_a)
+        real(wp), INTENT(OUT) :: dipm_norm(ndim,n_a),qm_norm(ndim,n_a)
+        real(wp) :: r(ndim,n_a), r2(ndim,n_a)
+        INTEGER :: i
+
+        do i = 1, ndim
+            r2(i,:) = dipm(1,i,:)**2+dipm(2,i,:)**2+dipm(3,i,:)**2
+        enddo
+        r = sqrt(r2)
+       
+        
+        dipm_norm(:,:) = r(:,:)
+
+        do i = 1, ndim
+            r2(i,:) = qm(1,i,:)**2 + 2*qm(2,i,:)**2 + qm(3,i,:)**2 + 2*qm(4,i,:)**2 + 2*qm(5,i,:)**2 + qm(6,i,:)**2
+        enddo
+        r = sqrt(r2)
+        qm_norm(:,:) = r(:,:)
 
     end subroutine
 
@@ -228,128 +295,128 @@ module xtbml_functions
 
     end subroutine
 
-    subroutine get_delta_mm_Z(nat,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp)! all effects due to the electrons are set to 0, only the distribution of positive charges is left
+    subroutine get_delta_mm_Z(nat,n_a,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp)! all effects due to the electrons are set to 0, only the distribution of positive charges is left
         implicit none 
-        integer, INTENT(IN) :: nat, at(nat)
+        integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: dipm(3,nat), xyz(3,nat), qp(6,nat), q(nat), cn(nat)
-        real(wp), INTENT(OUT) :: delta_dipm(3,nat), delta_qp(6,nat)
-        integer :: a, b
-        real(wp) :: result, r_ab(3), qp_part(6,nat)
+        real(wp), INTENT(OUT) :: delta_dipm(3,nat,n_a), delta_qp(6,nat,n_a)
+        integer :: a, b,k
+        real(wp) :: result, r_ab(3), qp_part(6,nat,n_a)
 
-        !$acc enter data create(delta_dipm(:, :), delta_qp(:, :),qp_part(:,:))
+        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
         !$acc kernels default(present)
         delta_dipm = 0.0_wp
         delta_qp = 0.0_wp
         qp_part = 0.0_wp
         !$acc end kernels
-        !$acc enter data copyin( nat, , q(:), dipm(:, :), at(:),&
-        !$acc& qpint(:, :, :),xyz(:, :)),cn(:)
+        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
+        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
 
         !$acc parallel private(r_ab,result)
 
-        !$acc loop gang vector collapse(2)
+        !$acc loop gang vector collapse(3)
+        do k =1 ,n_a
         do a = 1, nat
             do b = 1, nat
-                !if (a == b) cycle 
-                call inv_cn(nat,a,b,at,xyz,result)
+                result =  inv_cn_a(a,b,k)
                 r_ab = xyz(:,a) - xyz(:,b)
                 !$acc atomic
-                delta_dipm(:,a) = delta_dipm(:,a) + (- r_ab(:) * q(b)) / (result*(cn(b)+1))
+                delta_dipm(:,a,k) = delta_dipm(:,a,k) + (- r_ab(:) * q(b)) / (result*(cn(b)+1))
                 !sorting of qp xx,xy,yy,xz,yz,zz
                 !$acc atomic
-                delta_qp(1,a) = delta_qp(1,a) + ( 1.5_wp*( r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
+                delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(2,a) = delta_qp(2,a) + ( 1.5_wp*( r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(3,a) = delta_qp(3,a) + ( 1.5_wp*( r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(4,a) = delta_qp(4,a) + ( 1.5_wp*( r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(5,a) = delta_qp(5,a) + ( 1.5_wp*( r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(6,a) = delta_qp(6,a) + ( 1.5_wp*( r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*( r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
             enddo
             !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
             !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
         enddo
+        enddo
 
         !$acc end parallel
-
-        !$acc exit data copyout(delta_dipm(:, :), delta_qp(:, :), qp_part(:,:))
-        call remove_trac_qp(nat,delta_qp,qp_part)
+        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
+        call remove_trac_qp(nat,n_a,delta_qp,qp_part)
 
     end subroutine
 
-    subroutine get_delta_mm_p(nat,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp) ! the sign of q was changed to respect the charge of the electrons
+    subroutine get_delta_mm_p(nat,n_a,q,dipm,qp,at,xyz,cn,delta_dipm,delta_qp) ! the sign of q was changed to respect the charge of the electrons
         implicit none 
-        integer, INTENT(IN) :: nat, at(nat)
+        integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: dipm(3,nat), xyz(3,nat), qp(6,nat),  q(nat), cn(nat)
-        real(wp), INTENT(OUT) :: delta_dipm(3,nat), delta_qp(6,nat)
-        integer :: a, b
-        real(wp) :: result, r_ab(3), qp_part(6,nat)
+        real(wp), INTENT(OUT) :: delta_dipm(3,nat,n_a), delta_qp(6,nat,n_a)
+        integer :: a, b,k
+        real(wp) :: result, r_ab(3), qp_part(6,nat,n_a)
 
-        !$acc enter data create(delta_dipm(:, :), delta_qp(:, :),qp_part(:,:))
+        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
         !$acc kernels default(present)
         delta_dipm = 0.0_wp
         delta_qp = 0.0_wp
         qp_part = 0.0_wp
         !$acc end kernels
-        !$acc enter data copyin( nat, , q(:), dipm(:, :), at(:),&
-        !$acc& qpint(:, :, :),xyz(:, :)),cn(:)
+        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
+        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
 
         !$acc parallel private(r_ab,result)
 
-        !$acc loop gang vector collapse(2)
-
+        !$acc loop gang vector collapse(3)
+        do k =1, n_a
         do a = 1, nat
             do b = 1, nat
-                !if (a == b) cycle 
-                call inv_cn(nat,a,b,at,xyz,result)
+                result = inv_cn_a(a,b,k)
                 r_ab = xyz(:,a) - xyz(:,b)
                 !$acc atomic
-                delta_dipm(:,a) = delta_dipm(:,a) + (dipm(:,b) + r_ab(:) * q(b)) / (result*(cn(b)+1))
+                delta_dipm(:,a,k) = delta_dipm(:,a,k) + (dipm(:,b) + r_ab(:) * q(b)) / (result*(cn(b)+1))
                 !sorting of qp xx,xy,yy,xz,yz,zz
                 !$acc atomic
-                delta_qp(1,a) = delta_qp(1,a) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) - r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
+                delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) - r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(2,a) = delta_qp(2,a) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) - r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) - r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(3,a) = delta_qp(3,a) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) - r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
+                delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) - r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(4,a) = delta_qp(4,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) - r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) - r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(5,a) = delta_qp(5,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) - r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) - r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !$acc atomic
-                delta_qp(6,a) = delta_qp(6,a) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) - r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
+                delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) - r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
+                qp_part(:,a,k) = qp_part(:,a,k) + qp(:,b) / (result*(cn(b)+1))
             enddo
             !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
             !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
         enddo
+        enddo
         !$acc end parallel
 
-        !$acc exit data copyout(delta_dipm(:, :), delta_qp(:, :), qp_part(:,:))
-        call remove_trac_qp(nat,delta_qp,qp_part)
+        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
+        call remove_trac_qp(nat,n_a,delta_qp,qp_part)
 
     end subroutine
 
-    subroutine remove_trac_qp(nat,qp_matrix,qp_part)
+    subroutine remove_trac_qp(nat,n_a,qp_matrix,qp_part)
         implicit none
-        integer, INTENT(IN) :: nat
-        real(wp),INTENT(IN) :: qp_part(6,nat)
-        real(wp), INTENT(INOUT) :: qp_matrix(6,nat)
+        integer, INTENT(IN) :: nat,n_a
+        real(wp),INTENT(IN) :: qp_part(6,nat,n_a)
+        real(wp), INTENT(INOUT) :: qp_matrix(6,nat,n_a)
         integer :: i
-        real(wp) :: tii
+        real(wp) :: tii(n_a)
 
         do i = 1, nat 
-            tii = qp_matrix(1,i)+qp_matrix(3,i)+qp_matrix(6,i)
+            tii = qp_matrix(1,i,:)+qp_matrix(3,i,:)+qp_matrix(6,i,:)
             tii = tii/3.0_wp
             !qp_matrix(1:6,i) = 1.50_wp*qp(1:6,i)
-            qp_matrix(1,i) = qp_matrix(1,i)-tii
-            qp_matrix(3,i) = qp_matrix(3,i)-tii
-            qp_matrix(6,i) = qp_matrix(6,i)-tii
-            qp_matrix(:,i) = qp_matrix(:,i) + qp_part(:,i)
+            qp_matrix(1,i,:) = qp_matrix(1,i,:)-tii
+            qp_matrix(3,i,:) = qp_matrix(3,i,:)-tii
+            qp_matrix(6,i,:) = qp_matrix(6,i,:)-tii
+            qp_matrix(:,i,:) = qp_matrix(:,i,:) + qp_part(:,i,:)
          enddo
     end subroutine
 
@@ -487,93 +554,100 @@ module xtbml_functions
     end subroutine
 
 
-    subroutine get_beta(nat,at,xyz,beta)
+    subroutine get_beta(nat,n_a,at,xyz,beta)
         implicit none
         intrinsic :: SUM
-        integer, INTENT(IN) :: nat,at(nat)
+        integer, INTENT(IN) :: nat,at(nat),n_a
         real(wp), INTENT(IN) :: xyz(3,nat)
-        real(wp) :: beta(nat,nat)
+        real(wp) :: beta(nat,nat,n_a)
 
-        real(wp) :: sigma_tot, sigma(nat,nat)
+        real(wp) :: sigma_tot, sigma(nat,nat,n_a)
         real(wp) :: damp_func
 
-        integer :: A,B
-        
+        integer :: A,B,k
+        do k = 1, n_a
         do A = 1,nat
             do B = 1,nat
-                call inv_cn(nat,A,B,at,xyz,damp_func)
-                sigma(A,B) = 1/ damp_func
+                damp_func = inv_cn_a(A,B,k)
+                sigma(A,B,k) = 1/ damp_func
             enddo
         enddo
-
-
-
-        do A = 1,nat
-            do B = 1, nat
-                beta(A,B) = sigma(A,B) / sum(sigma(A,:))
-            enddo
         enddo
 
+        do k = 1, n_a
+            do A = 1,nat
+                do B = 1, nat
+                    beta(A,B,k) = sigma(A,B,k) / sum(sigma(A,:,k))
+                enddo
+            enddo
+        enddo
     end subroutine
 
-    subroutine get_chem_pot_ext(nat,beta,chempot,chempot_ext)
+    subroutine get_chem_pot_ext(nat,n_a,beta,chempot,chempot_ext)
         implicit none
-        integer, intent(in) :: nat
-        real(wp), intent(in) :: beta(nat,nat)
+        integer, intent(in) :: nat, n_a
+        real(wp), intent(in) :: beta(nat,nat,n_a)
         real(wp), intent(in) :: chempot(nat)
-        real(wp) :: chempot_ext(nat)
-        integer :: A,B
+        real(wp) :: chempot_ext(nat,n_a)
+        integer :: A,B,k
+        do k = 1, n_a
         do A = 1,nat
             do B = 1,nat
-                chempot_ext(A) = chempot_ext(A) + beta(A,B) * chempot(B)
+
+                chempot_ext(A,k) = chempot_ext(A,k) + beta(A,B,k) * chempot(B)
             enddo
+        enddo
         enddo
     end subroutine
 
-    subroutine get_e_gap_ext(nat,hl_gap,beta,e_gap,e_gap_ext)
+    subroutine get_e_gap_ext(nat,n_a,hl_gap,beta,e_gap,e_gap_ext)
         implicit none
-        integer, intent(in) :: nat
+        integer, intent(in) :: nat,n_a
         real(wp), INTENT(IN) :: hl_gap
-        real(wp), intent(in) :: beta(nat,nat)
+        real(wp), intent(in) :: beta(nat,nat,n_a)
         real(wp), intent(in) :: e_gap(nat)
-        real(wp) :: e_gap_ext(nat),e_gap_tot
-        integer :: A,B
+        real(wp) :: e_gap_ext(nat,n_a),e_gap_tot
+        integer :: A,B,k
 
         e_gap_tot = 0.0_wp
+        do k = 1, n_a
         do A = 1,nat
             e_gap_tot = e_gap_tot + e_gap(A)
             do B = 1,nat
-                e_gap_ext(A) = e_gap_ext(A) + beta(A,B) * e_gap(B)
+                e_gap_ext(A,k) = e_gap_ext(A,k) + beta(A,B,k) * e_gap(B)
             enddo
+        enddo
         enddo
         ! correction factor for mol. properties
         !e_gap_ext = e_gap_ext * (hl_gap * nat/e_gap_tot)
     end subroutine
 
-    subroutine get_ehoao_ext(nat,chempot_ext,e_gap_ext,ehoao_ext)
+    subroutine get_ehoao_ext(nat,n_a,chempot_ext,e_gap_ext,ehoao_ext)
         implicit none
-        integer, intent(in) :: nat
-        real(wp), intent(in) :: chempot_ext(nat)
-        real(wp), intent(in) :: e_gap_ext(nat)
-        real(wp), intent(out) :: ehoao_ext(nat)
-        integer :: A
-
+        integer, intent(in) :: nat,n_a
+        real(wp), intent(in) :: chempot_ext(nat,n_a)
+        real(wp), intent(in) :: e_gap_ext(nat,n_a)
+        real(wp), intent(out) :: ehoao_ext(nat,n_a)
+        integer :: A,k
+        do k = 1, n_a
         do A = 1,nat
-            ehoao_ext(A) = chempot_ext(A) -  e_gap_ext(A)/2
+            ehoao_ext(A,k) = chempot_ext(A,k) -  e_gap_ext(A,k)/2
+        enddo
         enddo
     end subroutine
 
-    subroutine get_eluao_ext(nat,chempot_ext,e_gap_ext,eluao_ext)
+    subroutine get_eluao_ext(nat,n_a,chempot_ext,e_gap_ext,eluao_ext)
         implicit none
-        integer, intent(in) :: nat
-        real(wp), intent(in) :: chempot_ext(nat)
-        real(wp), intent(in) :: e_gap_ext(nat)
-        real(wp), intent(out) :: eluao_ext(nat)
-        integer :: A
-
+        integer, intent(in) :: nat,n_a
+        real(wp), intent(in) :: chempot_ext(nat,n_a)
+        real(wp), intent(in) :: e_gap_ext(nat,n_a)
+        real(wp), intent(out) :: eluao_ext(nat,n_a)
+        integer :: A,k
+        do k = 1, n_a
         do A = 1,nat
-            eluao_ext(A) = chempot_ext(A) +  e_gap_ext(A)/2
+            eluao_ext(A,k) = chempot_ext(A,k) +  e_gap_ext(A,k)/2
         enddo
+    enddo
     end subroutine
 
 end module xtbml_functions

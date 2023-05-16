@@ -45,7 +45,7 @@ module tblite_xtb_singlepoint
       & get_hamiltonian_gradient
    use tblite_disp_d4, only: d4_dispersion, new_d4_dispersion
    use xtbml_base, only : xtbml_base_type
-   use xtbml_xyz, only: xtbml_xyz_type
+   !use xtbml_xyz, only: xtbml_xyz_type
    use xtbml_class, only: xtbml_type
    implicit none
    private
@@ -113,7 +113,6 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    integer :: iscf, spin
 
    call timer%push("total")
-
    if (present(verbosity)) then
       prlevel = verbosity
    else
@@ -292,12 +291,12 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       end block
    case(2)
       block
-         type(xtbml_xyz_type), allocatable :: ml
+         type(xtbml_base_type), allocatable :: ml
          allocate(ml)
          call move_alloc(ml, xtbml)
       end block
    end select
-   call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,results)
+   call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,calc%a_array,results)
    deallocate(wfn%focca,wfn%foccb)
    end if
    call ctx%delete_solver(solver)
