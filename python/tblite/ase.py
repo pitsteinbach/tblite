@@ -231,12 +231,11 @@ class TBLite(ase.calculators.calculator.Calculator):
         try:
             _cell = self.atoms.cell
             _periodic = self.atoms.pbc
-            #print(self.parameters)
-            if self.parameters.charge:
+            if hasattr(self.parameters,"charge"):
                 _charge = self.parameters.charge
             else:
                 _charge = self.atoms.get_initial_charges().sum()
-            if self.parameters.uhf:
+            if hasattr(self.parameters,"uhf"):
                 _uhf = self.parameters.uhf
             else:
                 _uhf = int(self.atoms.get_initial_magnetic_moments().sum().round())
@@ -257,7 +256,7 @@ class TBLite(ase.calculators.calculator.Calculator):
             calc.set("max-iter", self.parameters.max_iterations)
             calc.set("verbosity", self.parameters.verbosity)
             calc.set("xtbml",self.parameters.xtbml)
-            if self.parameters.xtbml_a_array:
+            if hasattr(self.parameters, "xtbml_a_array"):
                 calc.set("xtbml_a_array",self.parameters.xtbml_a_array)
 
         except RuntimeError:
