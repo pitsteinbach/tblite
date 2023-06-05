@@ -19,5 +19,5 @@ srcs += files(
   'functions.f90',
   'type.f90',
   'xtbml.f90',
-  #'xtbml_xyz.f90',
+  'xtbml_xyz.f90',
 )
