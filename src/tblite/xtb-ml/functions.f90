@@ -2,6 +2,7 @@ module xtbml_functions
     use mctc_env, only : wp
     use mctc_io, only : structure_type
     use tblite_results, only : results_type
+    use tblite_blas
     real(wp),allocatable :: rcov(:),inv_cn_a(:,:,:)
     
     real(wp),parameter :: k1 = 16.0_wp
@@ -72,7 +73,7 @@ module xtbml_functions
         implicit none 
         integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: cn(nat), xyz(3,nat)
-        real(wp), INTENT(OUT) :: delta_cn(nat,n_a)
+        real(wp), INTENT(OUT) :: delta_cn(nat,n_a), delta_cn_tmp(nat,n_a)
         integer :: i,j,k
         
         !$acc enter data create(delta_cn(:, :))
@@ -88,11 +89,17 @@ module xtbml_functions
                     if (i == j) cycle 
                     !$acc atomic
                     delta_cn(i,k) = delta_cn(i,k) + cn(j) / inv_cn_a(i,j,k)
+                    
                 enddo
             enddo
         enddo
+
+        do k = 1, n_a
+            call gemv(inv_cn_a(:,:,k),cn,delta_cn_tmp(:,:,k))
+        end do 
+        write(*,*) delta_cn_tmp - delta_cn
         !$acc end parallel
-         !$acc exit data copyout(delta_cn(:, :))
+        !$acc exit data copyout(delta_cn(:, :))
     end subroutine
 
     subroutine inv_cn(nat,a,b,at,xyz,dampening_fact,result)
