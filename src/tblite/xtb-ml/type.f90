@@ -8,10 +8,12 @@ module xtbml_class
     use tblite_xtb_calculator, only : xtb_calculator
     use tblite_container, only : container_cache
     use tblite_results, only: results_type
+    use tblite_timer, only: timer_type, format_time
     implicit none
     character(len=12), parameter :: toml_file = "a_array.toml"
     private
- 
+    type(timer_type) :: timer
+
     type,public,abstract :: xtbml_type
         integer :: n_features
         character(len=30),allocatable :: feature_labels(:) 
@@ -92,6 +94,7 @@ module xtbml_class
         procedure :: compute_extended
         procedure :: print_out
         procedure :: pop_a
+        procedure :: print_timer
     end type xtbml_type
         
     !<
@@ -132,6 +135,7 @@ module xtbml_class
         implicit none
         class(xtbml_type) :: self
         integer,intent(in)  :: nat,nshell,n_a
+        
         allocate( self%w_tot (nat),     source = 0.0_wp )
         !
         allocate( self%cn_atom (nat),   source = 0.0_wp )
@@ -201,23 +205,28 @@ module xtbml_class
         !> Single-point calculator
         type(xtb_calculator), intent(in) :: calc
         type(exp_ncoord_type) :: ncoord_exp
+        integer :: mu
         real(wp) :: z(mol%nat),dipm_shell_tmp(3,calc%bas%nsh,1),qm_shell_tmp(6,calc%bas%nsh,1)
         !allocate self type
+        call timer%push("total")
+        call timer%push("geometric")
         call self%allocate(mol%nat,calc%bas%nsh,size(self%a))
         call get_rcov(mol)
-        !call set_dampening_factor(self%a)
         call new_exp_ncoord(ncoord_exp,mol)
         call ncoord_exp%get_cn(mol,self%cn_atom)
-        !compute delta CN
-        !call get_delta_cn(mol%nat,self%cn_atom,mol%id,mol%xyz,self%delta_cn)
+        call timer%pop()
         
+        call timer%push("density") 
         !shellwise mulliken charges
         call mulliken_shellwise(calc%bas%nao,calc%bas%nsh,calc%bas%ao2sh,wfn%density(:,:,wfn%nspin),&
         integrals%overlap,self%mulliken_shell)
-        call sum_up_spin(wfn%qat,self%partial_charge_atom)
-        
-        self%partial_charge_atom = wfn%qat(:,1)
+        !call sum_up_spin(wfn%qat,self%partial_charge_atom)
+        call mol_set_nuclear_charge(mol%nat,mol%num,mol%id,z)
 
+        do mu = 1, calc%bas%nsh
+            self%partial_charge_atom(calc%bas%sh2at(mu)) = self%partial_charge_atom(calc%bas%sh2at(mu)) +  self%mulliken_shell(mu)
+        enddo
+        self%partial_charge_atom = -self%partial_charge_atom + z
         !multipole moments shellwise und then atomwise
         
         call get_mulliken_shell_multipoles(calc%bas,integrals%dipole, wfn%density, &
@@ -232,6 +241,7 @@ module xtbml_class
 
         call comp_norm(calc%bas%nsh,dipm_shell_tmp,qm_shell_tmp,self%dipm_shell,self%qm_shell)
         call comp_norm(mol%nat,wfn%dpat,wfn%qpat,self%dipm_atom,self%qm_atom)
+        call timer%pop()
         !call comp_norm(mol%nat,self%delta_dipm_xyz,self%delta_qm_xyz,self%delta_dipm,self%delta_qm)
         
     end subroutine get_geometry_density_based
@@ -253,7 +263,7 @@ module xtbml_class
         real(wp),intent(in) ::erep(mol%nat)
         real(wp),intent(inout) :: e_gfn2_tot
         real(wp), allocatable :: e_ao(:),e_disp(:)
-        
+        call timer%push("energy")
         call calc%coulomb%aes2%get_AXC(mol,wfn,self%e_axc)
         call calc%coulomb%aes2%get_energy_aes_xtb(mol,ccache,wfn,self%e_aes)
         
@@ -277,6 +287,7 @@ module xtbml_class
         !Compute partition weights based on total energy expression
         call get_total_xtb_weights(mol%nat,self%e_EHT,self%e_rep_atom,self%e_disp_2,self%e_disp_3,&
                                 self%e_ies_ixc,self%e_aes,self%e_axc,self%w_tot,e_gfn2_tot)
+        call timer%pop()
     end subroutine get_energy_based
 
     subroutine print_out(self,out,nat,at,id2at,res)
@@ -312,6 +323,7 @@ module xtbml_class
         type(wavefunction_type), intent(in) :: wfn
         real(wp) :: beta(mol%nat,mol%nat,size(self%a)),hl_gap
         integer :: n
+        call timer%push("extended frontier")
         n =size(self%a)
         call get_beta(mol%nat,n,mol%id,mol%xyz,beta)
 
@@ -323,7 +335,8 @@ module xtbml_class
         call get_ehoao_ext(mol%nat,n,self%delta_chempot,self%delta_egap,self%delta_ehoao)
 
         call get_eluao_ext(mol%nat,n,self%delta_chempot,self%delta_egap,self%delta_eluao)
-
+        call timer%pop()
+        call timer%push("print out")
     end subroutine get_extended_frontier
 
     subroutine compute_extended(self,mol,wfn,calc)
@@ -339,6 +352,7 @@ module xtbml_class
         integer :: n
         real(wp) :: mull_charge_atomic(mol%nat)
         real(wp) :: z(mol%nat)
+        call timer%push("extended")
         n = size(self%a)
         call populate_inv_cn_array(mol%nat,mol%id,mol%xyz,self%a)
         call mol_set_nuclear_charge(mol%nat,mol%num,mol%id,z)
@@ -354,13 +368,13 @@ module xtbml_class
         call comp_norm_3(mol%nat,n,self%delta_dipm_xyz,self%delta_qm_xyz,self%delta_dipm,self%delta_qm)
         call get_delta_mm_Z(mol%nat,n,z,wfn%dpat,wfn%qpat,mol%id,mol%xyz,self%cn_atom,self%delta_dipm_Z_xyz,&
         self%delta_qm_Z_xyz)
-        call sum_up_mulliken(mol%nat,calc%bas%nsh,calc%bas%ao2at,calc%bas%sh2at,self%mulliken_shell,mull_charge_atomic)
+        call sum_up_mulliken(mol%nat,calc%bas%nsh,calc%bas%sh2at,calc%bas%sh2at,self%mulliken_shell,mull_charge_atomic)
         call get_delta_mm_p(mol%nat,n,mull_charge_atomic,wfn%dpat,wfn%qpat,mol%id,mol%xyz,self%cn_atom,&
         self%delta_dipm_e_xyz,self%delta_qm_e_xyz)
 
         call comp_norm_3(mol%nat,n,self%delta_dipm_e_xyz,self%delta_qm_e_xyz,self%delta_dipm_e,self%delta_qm_e)
         call comp_norm_3(mol%nat,n,self%delta_dipm_Z_xyz,self%delta_qm_Z_xyz,self%delta_dipm_Z,self%delta_qm_Z)
-    
+        call timer%pop()
     end subroutine compute_extended
 
     subroutine pop_a(self)
@@ -394,8 +408,31 @@ module xtbml_class
             self%a = [1.0_wp]
         end if
 
-    end subroutine pop_a    
+    end subroutine pop_a
 
+    subroutine print_timer(self,ftime)
+        use tblite_output_format, only : format_string
+        class(xtbml_type) :: self
+        real(wp),intent(in) :: ftime
+        integer :: it
+        real(wp) :: ttime, stime
+        character(len=*), parameter :: label(*) = [character(len=20):: &
+        & "geometric","density", "energy", "frontier", "extended", "extended frontier","print out"]
+                call timer%pop()
+                   ttime = timer%get("total")
+                   write(*,*) (" total:"//repeat(" ", 16)//format_time(ttime))
+                
+                
+                   do it = 1, size(label)
+                      stime = timer%get(label(it))
+                      if (stime <= epsilon(0.0_wp)) cycle
+                      write(*,*)(" - "//label(it)//format_time(stime) &
+                         & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")
+                   end do
+                   write(*,*)(" - "//"frontier"//format_time(ftime) &
+                   & //" ("//format_string(int(ftime/ttime*100), '(i3)')//"%)") 
+                  write(*,*)
+    end subroutine print_timer
 
 
 end module xtbml_class

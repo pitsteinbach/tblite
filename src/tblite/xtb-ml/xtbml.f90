@@ -13,6 +13,7 @@ module xtbml_base
     
     use xtbml_class, only: xtbml_type
     integer,parameter :: n_delta = 12
+    logical, parameter :: debug = .false.
     type, public, extends(xtbml_type) :: xtbml_base_type
         
      
@@ -24,6 +25,7 @@ end type xtbml_base_type
 contains
     subroutine get_xtbml(self,mol,wfn,integrals,erep,calc,ccache,dcache,prlevel,a_array,res)
         use xtbml_functions
+        use tblite_timer, only: timer_type
         implicit none
         
         class(xtbml_base_type),intent(inout) :: self
@@ -37,9 +39,10 @@ contains
         real(wp), INTENT(IN) ::  erep(mol%nat)
         integer, intent(in) :: prlevel
         real(wp), intent(in), allocatable :: a_array(:)
-        real(wp) :: e_gfn2_tot
+        real(wp) :: e_gfn2_tot,ftime
         integer :: ml_out
         logical :: print_afo
+        type(timer_type) :: timer
         character(len=30), allocatable :: tmp_labels(:)
         if (allocated(a_array)) then
             allocate(self%a(size(a_array)))
@@ -71,8 +74,11 @@ contains
         if (prlevel > 1) then
             print_afo = .true.
         end if
+        call timer%push("frontier")
         call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
         integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b,print_afo)
+        call timer%pop()
+        ftime = timer%get("frontier")
         call self%compute_extended(mol,wfn,calc)
         call self%get_extended_frontier(mol,wfn)
         call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,tmp_labels,res)
@@ -83,6 +89,9 @@ contains
             call self%print_out(ml_out,mol%nat,mol%num,mol%id,res)
         endif
         deallocate(self%delta_labels)
+        if (debug) then 
+           call self%print_timer(ftime)
+        endif 
     end subroutine get_xtbml
 
     subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,labels,res)
@@ -123,7 +132,7 @@ contains
         do i =1, n_other
             self%feature_labels(i) = trim(labels(i))
         enddo
-            
+         
         do k =1 , size(self%a)
             offset = n_other + (k-1)*n_delta
             res%ml_features(:,offset+1) = self%delta_cn(:,k)
@@ -138,9 +147,16 @@ contains
             res%ml_features(:,offset+10) = self%delta_chempot(:,k)
             res%ml_features(:,offset+11) = self%delta_ehoao(:,k)
             res%ml_features(:,offset+12) = self%delta_eluao(:,k)
-            do i = 1, n_delta
-                self%feature_labels(offset+i) = trim(self%delta_labels(i)) //'_' //adjustl(format_string(self%a(k),'(f12.2)'))
-            enddo
+            if (self%a(1) .ne. 1.0_wp) then 
+                do i = 1, n_delta
+                    self%feature_labels(offset+i) = trim(self%delta_labels(i)) //'_' //adjustl(format_string(self%a(k),'(f12.2)'))
+                enddo
+            else
+                do i = 1, n_delta
+                    self%feature_labels(offset+i) = trim(self%delta_labels(i))
+                enddo
+            endif
+            
         enddo
 
         res%n_features = self%n_features

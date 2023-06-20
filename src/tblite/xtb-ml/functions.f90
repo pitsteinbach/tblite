@@ -16,33 +16,24 @@ module xtbml_functions
         real(wp) :: result
         integer :: i,j,k
         n_a = size(a)
-        !$acc enter data create(inv_cn_a(:,:, :))
-        !$acc kernels default(present)
-        if (allocated(inv_cn_a)) then
+        if (allocated(inv_cn_a)) then 
             deallocate(inv_cn_a)
         end if
-        allocate(inv_cn_a(nat,nat,size(a)),source=0.0_wp)
-        !$acc end kernels
-        !$acc enter data copyin( a,nat, at(:),xyz(:, :),a(:))
-
-        !$acc parallel private(result)
-
-        !$acc loop gang vector collapse(3)
-
+        allocate(inv_cn_a(nat,nat,n_a),source =0.0_wp)
+        !$omp parallel do default(none) collapse(2)&
+        !$omp shared(a,nat, at,xyz,inv_cn_a,n_a)& 
+        !$omp private(result,i,j,k)
         do k = 1, n_a
             do i = 1, nat
                 do j = 1, nat
                     !if (i == j) cycle 
                     call inv_cn(nat,i,j,at,xyz,a(k),result)
-                    !$acc atomic
                     inv_cn_a(i,j,k) = result 
                 enddo
             enddo  
         enddo
-        !$acc end parallel
-
-        !$acc exit data copyout(inv_cn_a(:,:, :))
-
+        !$omp end parallel do
+        
     end subroutine populate_inv_cn_array
 
     subroutine get_rcov(mol)
@@ -70,12 +61,15 @@ module xtbml_functions
     end subroutine
 
     subroutine get_delta_cn(nat,n_a,cn,at,xyz,delta_cn)
+        use tblite_timer, only : timer_type, format_time
         implicit none 
         integer, INTENT(IN) :: nat, at(nat),n_a
         real(wp), INTENT(IN) :: cn(nat), xyz(3,nat)
-        real(wp), INTENT(OUT) :: delta_cn(nat,n_a), delta_cn_tmp(nat,n_a)
+        real(wp), INTENT(OUT) :: delta_cn(nat,n_a)
+        real(wp):: delta_cn_tmp(nat,n_a),stime
         integer :: i,j,k
-        
+        type(timer_type) :: timer
+        call timer%push("OMP")
         !$acc enter data create(delta_cn(:, :))
         !$acc kernels default(present)
         delta_cn = 0.0_wp
@@ -94,13 +88,31 @@ module xtbml_functions
             enddo
         enddo
 
-        do k = 1, n_a
-            call gemv(inv_cn_a(:,:,k),cn,delta_cn_tmp(:,:,k))
-        end do 
-        write(*,*) delta_cn_tmp - delta_cn
         !$acc end parallel
         !$acc exit data copyout(delta_cn(:, :))
+        call timer%push("BLAS")
+        do k = 1, n_a
+            delta_cn_tmp(:,k) = -cn
+            call gemv(1.0_wp/inv_cn_a(:,:,k),cn,delta_cn_tmp(:,k),beta=1.0_wp) 
+        end do
+        !call gemv(1.0inv_cn_a(:,:,:),cn,delta_cn_tmp(:,:))
+        
     end subroutine
+
+    subroutine compute_cn(nat,cn)
+        real(wp) :: cn(nat)
+        integer :: nat
+
+        real(wp) :: mat (nat)
+
+        mat = 1.0_wp
+        call gemv(1.0_wp/inv_cn_a(:,:,1),mat,cn)
+        cn = cn - mat
+
+    end subroutine
+        
+
+
 
     subroutine inv_cn(nat,a,b,at,xyz,dampening_fact,result)
         implicit none
@@ -148,9 +160,11 @@ module xtbml_functions
         integer ::  mu, nu
         
         charges_shell = 0.0_wp
-        
+        !$omp parallel do default(none) collapse(2)&
+        !$omp private(mu,nu) shared(charges_shell,nao,ao2shell,p,s) 
         do mu = 1, nao
             do nu = 1, nao
+                !$omp atomic
                 charges_shell(ao2shell(mu)) = charges_shell(ao2shell(mu)) + p(mu,nu) * s(nu,mu)
             enddo
         enddo
@@ -162,8 +176,10 @@ module xtbml_functions
         integer, INTENT(IN) :: nat , at(nat),n_a
         real(wp), INTENT(IN) :: atom_partial(nat), xyz(3,nat), cn(nat)
         real(wp), INTENT(OUT) :: delta_partial(nat,n_a)
+        real(wp) :: delta_partial_tmp(nat,n_a), f_log(nat,nat,n_a)
         integer :: a, b, k
         real(wp) :: result
+        f_log = 0.0_wp
         !$acc enter data create(delta_partial(:, :))
         !$acc kernels default(present)
         delta_partial = 0.0_wp
@@ -176,11 +192,18 @@ module xtbml_functions
                 do b = 1, nat
                     !$acc atomic
                     delta_partial(a,k) = delta_partial(a,k) + atom_partial(b) / (inv_cn_a(a,b,k)*(cn(b)+1))
+                    f_log(a,b,k) = 1.0_wp / (inv_cn_a(a,b,k)*(cn(b)+1))
                 enddo
             enddo
         enddo
         !$acc end parallel
         !$acc exit data copyout(delta_partial(:, :))
+        !do k = 1,nat
+        !    call gemv(f_log(:,:,k),atom_partial(:),delta_partial_tmp(:,k))
+        !end do
+
+        !write(*,*) sum(delta_partial-delta_partial_tmp)
+
     end subroutine
 
     subroutine sum_up_mm(nat,nshell,aoat2,ash,dipm_shell,qm_shell,dipm_at,qm_at)
@@ -310,37 +333,28 @@ module xtbml_functions
         integer :: a, b,k
         real(wp) :: result, r_ab(3), qp_part(6,nat,n_a)
 
-        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
-        !$acc kernels default(present)
         delta_dipm = 0.0_wp
         delta_qp = 0.0_wp
         qp_part = 0.0_wp
-        !$acc end kernels
-        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
-        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
-
-        !$acc parallel private(r_ab,result)
-
-        !$acc loop gang vector collapse(3)
+        
         do k =1 ,n_a
         do a = 1, nat
             do b = 1, nat
                 result =  inv_cn_a(a,b,k)
                 r_ab = xyz(:,a) - xyz(:,b)
-                !$acc atomic
                 delta_dipm(:,a,k) = delta_dipm(:,a,k) + (- r_ab(:) * q(b)) / (result*(cn(b)+1))
                 !sorting of qp xx,xy,yy,xz,yz,zz
-                !$acc atomic
+                
                 delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*( r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 !qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
             enddo
@@ -349,8 +363,7 @@ module xtbml_functions
         enddo
         enddo
 
-        !$acc end parallel
-        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
+        
         call remove_trac_qp(nat,n_a,delta_qp,qp_part)
 
     end subroutine
@@ -363,37 +376,30 @@ module xtbml_functions
         integer :: a, b,k
         real(wp) :: result, r_ab(3), qp_part(6,nat,n_a)
 
-        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
-        !$acc kernels default(present)
+        
         delta_dipm = 0.0_wp
         delta_qp = 0.0_wp
         qp_part = 0.0_wp
-        !$acc end kernels
-        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
-        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
-
-        !$acc parallel private(r_ab,result)
-
-        !$acc loop gang vector collapse(3)
+        
         do k =1, n_a
         do a = 1, nat
             do b = 1, nat
                 result = inv_cn_a(a,b,k)
                 r_ab = xyz(:,a) - xyz(:,b)
-                !$acc atomic
+                
                 delta_dipm(:,a,k) = delta_dipm(:,a,k) + (dipm(:,b) + r_ab(:) * q(b)) / (result*(cn(b)+1))
                 !sorting of qp xx,xy,yy,xz,yz,zz
-                !$acc atomic
+                
                 delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) - r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) - r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) - r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) - r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+                
                 delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) - r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
+               
                 delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) - r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
                 qp_part(:,a,k) = qp_part(:,a,k) + qp(:,b) / (result*(cn(b)+1))
             enddo
@@ -401,9 +407,7 @@ module xtbml_functions
             !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
         enddo
         enddo
-        !$acc end parallel
-
-        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
+        write(*,*) delta_dipm(1,:,1)
         call remove_trac_qp(nat,n_a,delta_qp,qp_part)
 
     end subroutine
