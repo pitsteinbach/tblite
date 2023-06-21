@@ -25,6 +25,7 @@ module tblite_xtbml_class
    use tblite_container, only : container_cache
    use tblite_results, only : results_type
    use tblite_timer, only : timer_type, format_time
+   use tblite_context
    implicit none
    character(len=12), parameter :: toml_file="a_array.toml"
    private
@@ -117,9 +118,9 @@ module tblite_xtbml_class
    !<
    abstract interface
       !> Routine that computes the xtbml features
-      subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prlevel, a_array, res)
+      subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prlevel, a_array, ctx, res)
       import :: wp, structure_type, wavefunction_type, integral_type, &
-         xtb_calculator, container_cache, results_type, xtbml_type
+         xtb_calculator, container_cache, results_type, xtbml_type, context_type
       class(xtbml_type), intent(inout) :: self
       !> Molecular structure data
       type(structure_type), intent(in) :: mol
@@ -130,6 +131,7 @@ module tblite_xtbml_class
       type(xtb_calculator), intent(in) :: calc
       type(container_cache), intent(inout) :: ccache, dcache
       type(results_type), intent(inout) :: res
+      type(context_type),intent(inout) :: ctx
       real(wp), INTENT(IN) ::  erep(mol%nat)
       integer, intent(in) :: prlevel
       real(wp), intent(in), allocatable  :: a_array(:)
@@ -301,7 +303,7 @@ subroutine get_energy_based(self, mol, wfn, calc, integrals, ccache, dcache, ere
    call timer%pop()
 end subroutine get_energy_based
 
-subroutine get_frontier(self,mol,bas,wfn,overlap,print_afo)
+subroutine get_frontier(self,mol,bas,wfn,overlap,print_afo,ctx)
    use mctc_io_convert, only : autoev
    class(xtbml_type), intent(inout) :: self
    !> Molecular structure data
@@ -309,6 +311,7 @@ subroutine get_frontier(self,mol,bas,wfn,overlap,print_afo)
    !> Wavefunction strcuture data
    type(wavefunction_type), intent(in) :: wfn
    type(basis_type) :: bas
+   type(context_type) :: ctx
    real(wp),intent(in) :: overlap(:,:)
    logical :: print_afo
    real(wp) :: focc_(2,size(wfn%focc))
@@ -339,7 +342,7 @@ subroutine get_frontier(self,mol,bas,wfn,overlap,print_afo)
    call atomic_frontier_orbitals(mol%nat, bas%nao, focc_(1,:), focc_(2,:), wfn%emo(:, 1)*autoev, &
       bas%ao2at, wfn%coeff(:, :, 1), overlap(:, :), &
       self%response, self%egap, self%chempot, self%ehoao_a, &
-      self%eluao_a, self%ehoao_b, self%eluao_b, print_afo)
+      self%eluao_a, self%ehoao_b, self%eluao_b, print_afo,ctx)
 
    call timer%push("frontier")
 
@@ -465,21 +468,22 @@ subroutine pop_a(self)
 
 end subroutine pop_a
 
-subroutine print_timer(self)
+subroutine print_timer(self,ctx)
    use tblite_output_format, only : format_string
    class(xtbml_type) :: self
+   type(context_type) :: ctx
    integer :: it
    real(wp) :: ttime, stime
    character(len=*), parameter :: label(*)=[character(len=20):: &
       & "geometric", "density", "energy", "frontier", "extended", "extended frontier", "print out"]
    call timer%pop()
    ttime=timer%get("total")
-   write(*, *)(" total:"//repeat(" ", 16)//format_time(ttime))
+   call ctx%message(" total:"//repeat(" ", 16)//format_time(ttime))
 
    do it=1, size(label)
       stime=timer%get(label(it))
       if(stime<=epsilon(0.0_wp)) cycle
-      write(*, *)(" - "//label(it)//format_time(stime) &
+      call ctx%message(" - "//label(it)//format_time(stime) &
          & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")
    enddo
 

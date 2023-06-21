@@ -29,16 +29,16 @@
 ! ehoaoa,b: highest occ. atomic orbital for (alpha, beta) part
 ! eluaoa,b: lowest virt. atomic orbital for (alpha, beta) part
 subroutine atomic_frontier_orbitals(nat, nao, focca, foccb, eps, aoat, C, S, response, egap, &
-   chempot, ehoaoa, eluaoa, ehoaob, eluaob, print)
+   chempot, ehoaoa, eluaoa, ehoaob, eluaob, print, ctx)
 use mctc_env, only : wp, sp
  !use xtb_mctc_accuracy, only : wp, sp
 use mctc_io_convert, only : autoev
 use tblite_timer, only : timer_type, format_time
-
+use tblite_context, only : context_type
 integer, intent(in)    :: nat, nao, aoat(nao)
 real(wp), intent(in)    :: focca(nao), foccb(nao), eps(nao)
 real(wp), intent(in)    :: C(nao, nao), S(nao, nao)
-
+type(context_type) :: ctx
 real(wp), intent(out)  :: ehoaoa(nat), eluaoa(nat), ehoaob(nat), eluaob(nat), egap(nat), response(nat), chempot(nat)
 integer  :: i, j, k, jj, kk, m
 real(wp):: po(nat, nao), pv(nat, nao)
@@ -47,6 +47,7 @@ real(wp), parameter :: damp = 0.5_wp ! damping in response function (in eV)
 logical, intent(in) :: print
 type(timer_type) :: timer
 logical, parameter :: debug = .false.
+character(len=150)  :: tmp_str
 call timer%push("total")
 call timer%push("occupation a")
 
@@ -142,11 +143,11 @@ end do ! occ
  !!$omp end parallel do
 call timer%pop()
 if (print) then
-   write (*, *)
-   write (*, *) "  -------------------------"
-   write (*, *) "  atomic frontier MO (alpha) info "
-   write (*, *) "  -------------------------"
-   write (*, *) "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO (eV)    LUAO (eV)"
+   call ctx%message("")
+   call ctx%message( "  -------------------------")
+   call ctx%message( "  atomic frontier MO (alpha) info ")
+   call ctx%message( "  -------------------------")
+   call ctx%message( "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO (eV)    LUAO (eV)")
 end if
 call timer%push("AO A")
 
@@ -207,8 +208,9 @@ end do
 
 if (print) then
    do m = 1, nat
-      write (*, '(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m, &
+      write (tmp_str, '(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m, &
          response(m)*(autoev**2), egap(m), chempot(m), ehoaoa(m), eluaoa(m)
+      call ctx%message(trim(tmp_str))
    end do
    write (*, *)
 end if
@@ -296,11 +298,11 @@ end do ! occ
 call timer%pop()
 call timer%push("AO B")
 if (print) then
-   write (*, *)
-   write (*, *) "  -------------------------"
-   write (*, *) "  atomic frontier MO (beta) info "
-   write (*, *) "  -------------------------"
-   write (*, *) "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO_b (eV)    LUAO_b (eV)"
+   call ctx%message("")
+   call ctx%message( "  -------------------------")
+   call ctx%message( "  atomic frontier MO (beta) info ")
+   call ctx%message( "  -------------------------")
+   call ctx%message( "  atom   response (a.u.)   gap (eV)  chem.pot (eV)  HOAO (eV)    LUAO (eV)")
 end if
 
 ehoaob = 0.0_wp
@@ -361,8 +363,9 @@ end do
 call timer%pop()
 if (print) then
    do m = 1, nat
-      write (*, '(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m, &
+      write (tmp_str, '(3x,i6,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4,5x,f8.4)') m, &
          response(m)*(autoev**2), egap(m), chempot(m), ehoaob(m), eluaob(m)
+      call ctx%message(tmp_str)
    end do
    write (*, *)
 end if

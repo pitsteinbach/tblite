@@ -44,8 +44,8 @@ module tblite_xtb_singlepoint
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
    use tblite_xtbml_base, only : xtbml_base_type
-   use tblite_xtbml_xyz, only: xtbml_xyz_type
-   use tblite_xtbml_class, only: xtbml_type
+   use tblite_xtbml_xyz, only : xtbml_xyz_type
+   use tblite_xtbml_class, only : xtbml_type
    implicit none
    private
 
@@ -289,7 +289,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
             call move_alloc(ml, xtbml)
          end block
       end select
-      call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,calc%a_array,results)
+      call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,calc%a_array,ctx,results)
       call timer%pop
    end if
    call ctx%delete_solver(solver)

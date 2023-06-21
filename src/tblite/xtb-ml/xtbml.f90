@@ -26,6 +26,7 @@ module tblite_xtbml_base
    use tblite_container, only : container_cache
    use tblite_results, only : results_type
    use mctc_io_convert, only : autoev
+   use tblite_context
 
    use tblite_xtbml_class, only : xtbml_type
    integer, parameter :: n_delta = 12
@@ -37,7 +38,7 @@ module tblite_xtbml_base
       procedure :: pack_res
    end type xtbml_base_type
 contains
-subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prlevel, a_array, res)
+subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prlevel, a_array, ctx, res)
    use tblite_xtbml_functions
    use tblite_timer, only : timer_type
    implicit none
@@ -50,6 +51,7 @@ subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prle
    type(wavefunction_type), intent(in) :: wfn
    type(container_cache), intent(inout) :: ccache, dcache
    type(results_type), intent(inout) :: res
+   type(context_type), intent(inout) :: ctx
    real(wp), INTENT(IN) ::  erep(mol%nat)
    integer, intent(in) :: prlevel
    real(wp), intent(in), allocatable :: a_array(:)
@@ -88,7 +90,7 @@ subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prle
       print_afo = .true.
    end if
 
-   call self%get_frontier(mol,calc%bas,wfn,integrals%overlap(:,:),print_afo)
+   call self%get_frontier(mol,calc%bas,wfn,integrals%overlap(:,:),print_afo,ctx)
 
    call self%compute_extended(mol, wfn, calc)
    call self%get_extended_frontier(mol, wfn)
@@ -101,7 +103,7 @@ subroutine get_xtbml(self, mol, wfn, integrals, erep, calc, ccache, dcache, prle
    end if
    deallocate (self%delta_labels)
    if (debug) then
-      call self%print_timer()
+      call self%print_timer(ctx)
    end if
 end subroutine get_xtbml
 
