@@ -423,7 +423,7 @@ module xtbml_functions
             !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
         enddo
         enddo
-        write(*,*) delta_dipm(1,:,1)
+        
         call remove_trac_qp(nat,n_a,delta_qp,qp_part)
 
     end subroutine
