@@ -69,7 +69,7 @@ module tblite_coulomb_multipole
       !> Return dependency on density
       procedure :: variable_info
       !> Get anisotropic electrostatic energy
-      procedure :: get_energy 
+      procedure :: get_energy
       !> Get anisotropic electrostatic potential
       procedure :: get_potential
       !> Get derivatives of anisotropic electrostatics
@@ -211,6 +211,7 @@ subroutine get_energy(self, mol, cache, wfn, energies)
    call gemv(ptr%amat_sd, wfn%qat(:, 1), vd)
    call gemv(ptr%amat_dd, wfn%dpat(:, :, 1), vd, beta=1.0_wp, alpha=0.5_wp)
    call gemv(ptr%amat_sq, wfn%qat(:, 1), vq)
+
    energies(:) = energies + sum(wfn%dpat(:, :, 1) * vd, 1) + sum(wfn%qpat(:, :, 1) * vq, 1)
 
    call get_kernel_energy(mol, self%dkernel, wfn%dpat(:, :, 1), energies)
@@ -1198,6 +1199,5 @@ subroutine get_AXC(self, mol, wfn, energies)
    call get_kernel_energy(mol, self%qkernel, wfn%qpat(:, :, 1), energies)
    
 end subroutine get_AXC
-
 
 end module tblite_coulomb_multipole

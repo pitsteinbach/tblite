@@ -43,7 +43,6 @@ module tblite_xtb_singlepoint
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
-   use tblite_disp_d4, only: d4_dispersion, new_d4_dispersion
    use xtbml_base, only : xtbml_base_type
    use xtbml_xyz, only: xtbml_xyz_type
    use xtbml_class, only: xtbml_type
@@ -113,6 +112,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    integer :: iscf, spin
 
    call timer%push("total")
+   
    if (present(verbosity)) then
       prlevel = verbosity
    else
@@ -272,6 +272,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message(label_total // format_string(sum(energies), real_format) // " Eh")
       call ctx%message("")
    end if
+
    if (calc%xtbml /= 0) then 
       allocate(wfn%focca(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)
       allocate(wfn%foccb(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)

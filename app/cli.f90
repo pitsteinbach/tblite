@@ -104,8 +104,7 @@ module tblite_cli
       character(len=:), allocatable :: actual
       character(len=:), allocatable :: reference
       logical :: fit = .false.
-   end type tagdiff_config
-   
+   end type tagdiff_config 
 contains
 
 subroutine get_arguments(config, error)
@@ -424,13 +423,11 @@ subroutine get_run_arguments(config, list, start, error)
       case("--xtbml")
          config%method = "gfn2"
          config%xtbml = .true. 
-         !config%param = "gfn2"
       case("--xtbml_xyz")
          config%method = "gfn2"
          config%xtbmlxyz = .true. 
       end select
    end do
-
 
    if (.not.(allocated(config%input))) then
       if (.not.allocated(error)) then

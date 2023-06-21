@@ -264,6 +264,9 @@ class Result:
          overlap-matrix         norb, norb  unitless
          hamiltonian-matrix     norb, norb  Hartree
          density-matrix         norb, norb  e
+         xtbml                  nfeat, nat  /
+         xtbml weights          nat         unitless
+         xtbml labels           nfeat       string
         ====================== =========== ==============
 
         Notes
@@ -431,7 +434,7 @@ class Calculator(Structure):
     _getter = {
         "angular-momenta": library.get_calculator_angular_momenta,
         "orbital-map": library.get_calculator_orbital_map,
-        "shell-map": library.get_calculator_shell_map
+        "shell-map": library.get_calculator_shell_map,
     }
 
     def __init__(
@@ -473,6 +476,8 @@ class Calculator(Structure):
          save-integrals    Keep integral matrices in results    0 (False)
          temperature       Electronic temperature for filling   9.500e-4
          verbosity         Set verbosity of printout            1
+         xtbml             Set flag to compute xtbml features   0
+         xtbml_a_array     Set steepness for logistic function  1.0
         ================= ==================================== =================
 
         .. note::

@@ -608,6 +608,11 @@ if (.not.allocated(res%results)) then
    return
 end if
 
+if (.not.allocated(res%results%w_xtbml)) then
+   call fatal_error(error%ptr, "Result does not contain xtbml features")
+   return
+end if
+
 n_features = res%results%n_features
 
 end subroutine get_result_xtbml_n_features_api

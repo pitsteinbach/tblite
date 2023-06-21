@@ -22,5 +22,5 @@ srcs += files(
   'h0.f90',
   'ipea1.f90',
   'singlepoint.f90',
-  'spec.f90'
+  'spec.f90',
 )

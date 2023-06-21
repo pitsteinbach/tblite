@@ -33,7 +33,6 @@ from .interface import Calculator
 import ase.calculators.calculator
 from ase.atoms import Atoms
 from ase.units import Hartree, Bohr, kB
-import numpy as np
 
 
 class TBLite(ase.calculators.calculator.Calculator):
@@ -115,7 +114,6 @@ class TBLite(ase.calculators.calculator.Calculator):
         "cache_api": True,
         "verbosity": 1,
         "xtbml":0,
-        #"xtbml_a_array":np.array([1.0]),
     }
 
     _res = None
@@ -321,7 +319,7 @@ class TBLite(ase.calculators.calculator.Calculator):
         self.results["forces"] = -self._res.get("gradient") * Hartree / Bohr
         self.results["charges"] = self._res.get("charges")
         self.results["dipole"] = self._res.get("dipole") * Bohr
-        if self.parameters.xtbml == 1:
+        if self.parameters.xtbml != 0:
             self.results["xtbml"] = self._res.get("xtbml")
             self.results["xtbml weights"] = self._res.get("xtbml weights")
             self.results["xtbml labels"] = self._res.get("xtbml labels")

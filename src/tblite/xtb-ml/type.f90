@@ -285,8 +285,8 @@ module xtbml_class
         
         call calc%coulomb%es2%get_energy(mol,ccache,wfn,self%e_ies_ixc)
         call calc%coulomb%es3%get_energy(mol,ccache,wfn,self%e_ies_ixc)
-        call calc%dispersion_2body%update(mol,dcache2)
-        call calc%dispersion_2body%get_engrad(mol,dcache2,self%e_disp_3)
+        call calc%dispersion_3body%update(mol,dcache2)
+        call calc%dispersion_3body%get_engrad(mol,dcache2,self%e_disp_3)
         
         allocate (e_disp(mol%nat),source=0.0_wp)
         call calc%dispersion%update(mol,dcache)
