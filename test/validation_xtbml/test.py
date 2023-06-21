@@ -1,6 +1,5 @@
 import pandas as pd
 import subprocess
-import pytest
 
 def tblite_xtbml_subprocess(dir,bin,args):
     stat = subprocess.call(

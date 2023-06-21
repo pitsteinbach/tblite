@@ -23,11 +23,11 @@ supposed to be used by meson for testing purposes only.
 """
 
 try:
-    import subprocess, sys, pandas, os, pytest, numpy as np
-    
+    import sys
+    from test import test_dir
 except ImportError:
     exit(77)
-from test import *
+
 #if len(sys.argv) < 4:
 #    raise RuntimeError("Requires at least four arguments")
 
