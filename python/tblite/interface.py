@@ -20,8 +20,9 @@ of the library in actual workflows than the low-level access provided in the
 CFFI generated wrappers.
 """
 
+from typing import Any, Optional
+
 import numpy as np
-from typing import Optional, Any
 
 from . import library
 
@@ -227,9 +228,9 @@ class Result:
         "density-matrix": library.get_density_matrix,
         "overlap-matrix": library.get_overlap_matrix,
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
-        "xtbml" : library.get_xtbml,
-        "xtbml weights" : library.get_w_xtbml,
-        "xtbml labels" : library.get_xtbml_labels
+        "xtbml": library.get_xtbml,
+        "xtbml weights": library.get_w_xtbml,
+        "xtbml labels": library.get_xtbml_labels,
     }
     _setter = {}
 
@@ -429,7 +430,7 @@ class Calculator(Structure):
         "temperature": library.set_calculator_temperature,
         "verbosity": library.set_calculator_verbosity,
         "xtbml": library.set_calculator_xtbml,
-        "xtbml_a_array" : library.set_calculator_xtbml_a_array,
+        "xtbml_a_array": library.set_calculator_xtbml_a_array,
     }
     _getter = {
         "angular-momenta": library.get_calculator_angular_momenta,
