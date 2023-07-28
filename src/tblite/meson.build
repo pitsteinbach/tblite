@@ -25,6 +25,7 @@ subdir('context')
 subdir('coulomb')
 subdir('data')
 subdir('disp')
+subdir('exchange')
 subdir('external')
 subdir('fit')
 subdir('integral')
@@ -36,6 +37,7 @@ subdir('output')
 subdir('param')
 subdir('repulsion')
 subdir('scf')
+subdir('')
 subdir('solvation')
 subdir('wavefunction')
 subdir('xtb')
@@ -51,6 +53,7 @@ srcs += files(
   'cutoff.f90',
   'data.f90',
   'disp.f90',
+  'exchange.f90',
   'lapack.f90',
   'ncoord.f90',
   'os.F90',
