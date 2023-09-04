@@ -16,7 +16,9 @@
 
 srcs += files(
   'atomic_frontier_orbitals.f90',
+  'features.f90',
   'functions.f90',
+  'geometry.f90',
   'type.f90',
   'xtbml.f90',
   'xtbml_xyz.f90',

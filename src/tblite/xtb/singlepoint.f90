@@ -272,32 +272,25 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message(label_total // format_string(sum(energies), real_format) // " Eh")
       call ctx%message("")
    end if
-   if (calc%xtbml /= 0) then 
-      allocate(wfn%focca(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)
-      allocate(wfn%foccb(size(wfn%focc(:,:),dim=1)),source= 0.0_wp)
-   if (mol%uhf /= 0) then
-      call occu(calc%bas%nao,nint(wfn%nel(1)),nint(wfn%nuhf),wfn%ihomoa,wfn%ihomob,wfn%focca,wfn%foccb)
-   else
-      wfn%focca =  wfn%focc(:,1)/2.0_wp
-      wfn%foccb =  wfn%focc(:,1)/2.0_wp
-   endif
-   call timer%push("xtb-ml features")
-   select case(calc%xtbml)
-   case(1)
-      block
-         type(xtbml_base_type),allocatable :: ml
-         allocate(ml)
-         call move_alloc(ml, xtbml)
-      end block
-   case(2)
-      block
-         type(xtbml_base_type), allocatable :: ml
-         allocate(ml)
-         call move_alloc(ml, xtbml)
-      end block
-   end select
-   call xtbml%get_xtbml(mol,wfn,ints,erep,calc,ccache,dcache,prlevel,calc%a_array,results)
-   deallocate(wfn%focca,wfn%foccb)
+
+   if (calc%xtbml /= 0) then
+      call timer%push("xtb-ml features")
+      select case(calc%xtbml)
+      case(1)
+         block
+            type(xtbml_base_type),allocatable :: ml
+            allocate(ml)
+            call move_alloc(ml, xtbml)
+         end block
+      case(2)
+         block
+            type(xtbml_xyz_type), allocatable :: ml
+            allocate(ml)
+            call move_alloc(ml, xtbml)
+         end block
+      end select
+      call xtbml%get_xtbml(mol, wfn, ints, calc, ccache, dcache, rcache, prlevel, ctx, results)
+      call timer%pop
    end if
    call ctx%delete_solver(solver)
    

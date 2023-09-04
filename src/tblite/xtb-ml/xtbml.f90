@@ -22,68 +22,72 @@ contains
     procedure :: pack_res
 end type xtbml_base_type
 contains
-    subroutine get_xtbml(self,mol,wfn,integrals,erep,calc,ccache,dcache,prlevel,a_array,res)
-        use xtbml_functions
-        implicit none
-        
-        class(xtbml_base_type),intent(inout) :: self
-        type(structure_type), intent(in) :: mol
-        type(integral_type) :: integrals
-        !> Single-point calculator
-        type(xtb_calculator), intent(in) :: calc
-        type(wavefunction_type), intent(in) :: wfn
-        type(container_cache),intent(inout) :: ccache,dcache
-        type(results_type),intent(inout) :: res
-        real(wp), INTENT(IN) ::  erep(mol%nat)
-        integer, intent(in) :: prlevel
-        real(wp), intent(in), allocatable :: a_array(:)
-        real(wp) :: e_gfn2_tot
-        integer :: ml_out
-        logical :: print_afo
-        character(len=30), allocatable :: tmp_labels(:)
-        if (allocated(a_array)) then
-            allocate(self%a(size(a_array)))
-            self%a = a_array
-        else
-            call self%pop_a()
-        endif
-        self%n_features = 40 + ((size(self%a)-1)*n_delta)
-        allocate(self%feature_labels(self%n_features))
-        tmp_labels = [ character(len=30) :: "CN",&
-        &"p_s","p_p","p_d",&
-        &"dipm_s","dipm_p","dipm_d",&
-        &"qm_s","qm_p","qm_d",&
-        &"q_A","dipm_A","qm_A",&
-        &"response","gap","chem_pot","HOAO_a","LUAO_a","HOAO_b","LUAO_b",&
-        &"E_repulsion","E_EHT",&
-        &"E_disp_2","E_disp_3","E_ies_ixc","E_aes","E_axc","E_tot"]
-        
-        allocate(self%delta_labels(n_delta))
-        self%delta_labels = [ character(len=30) :: "delta_CN",&
-        &"delta_q_A","delta_dipm_A","delta_qm_A",&
-        &"delta_dipm_e","delta_qm_e","delta_dipm_Z","delta_qm_Z",&
-        &"delta_gap","delta_chem_pot","delta_HOAO","delta_LUAO"]
+subroutine get_xtbml(self, mol, wfn, integrals, calc, ccache, dcache,rcache, prlevel, ctx, res)
+   use tblite_xtbml_functions
+   use tblite_timer, only : timer_type
+   implicit none
 
-        !get individual coulombic energy contributions in an atomwise vector
-        call self%get_geometry_density_based(mol,wfn,integrals,calc)
-        call self%get_energy_based(mol,wfn,calc,integrals,ccache,dcache,erep,e_gfn2_tot)
-        print_afo = .false.
-        if (prlevel > 1) then
-            print_afo = .true.
-        end if
-        call atomic_frontier_orbitals(mol%nat,calc%bas%nao,wfn%focca,wfn%foccb,wfn%emo(:,1)*autoev,calc%bas%ao2at,wfn%coeff(:,:,1),&
-        integrals%overlap(:,:),self%response,self%egap,self%chempot,self%ehoao_a,self%eluao_a,self%ehoao_b,self%eluao_b,print_afo)
-        call self%compute_extended(mol,wfn,calc)
-        call self%get_extended_frontier(mol,wfn)
-        call self%pack_res(mol%nat,calc%bas%nsh,calc%bas%nsh_at,e_gfn2_tot,tmp_labels,res)
-        
-        if (prlevel > 1) then
-            ml_out = 42
-            open(file='ml_feature_tblite.csv', newunit=ml_out)
-            call self%print_out(ml_out,mol%nat,mol%num,mol%id,res)
-        endif
-        deallocate(self%delta_labels)
-    end subroutine get_xtbml
+   class(xtbml_base_type), intent(inout) :: self
+   type(structure_type), intent(in) :: mol
+   type(integral_type) :: integrals
+   !> Single-point calculator
+   type(xtb_calculator), intent(in) :: calc
+   type(wavefunction_type), intent(in) :: wfn
+   type(container_cache), intent(inout) :: ccache, dcache, rcache
+   type(results_type), intent(inout) :: res
+   type(context_type), intent(inout) :: ctx
+
+   integer, intent(in) :: prlevel
+   
+   real(wp) :: e_gfn2_tot
+   integer :: ml_out
+   logical :: print_afo
+   character(len=30), allocatable :: tmp_labels(:)
+   
+   self%n_features = 40 + ((size(self%a) - 1)*n_delta)
+   allocate (self%feature_labels(self%n_features))
+   tmp_labels = [character(len=30) :: "CN",&
+      &"p_s", "p_p", "p_d",&
+      &"dipm_s", "dipm_p", "dipm_d",&
+      &"qm_s", "qm_p", "qm_d",&
+      &"q_A", "dipm_A", "qm_A",&
+      &"response", "gap", "chem_pot", "HOAO_a", "LUAO_a", "HOAO_b", "LUAO_b",&
+      &"E_repulsion", "E_EHT",&
+      &"E_disp_2", "E_disp_3", "E_ies_ixc", "E_aes", "E_axc", "E_tot"]
+
+   allocate (self%delta_labels(n_delta))
+   self%delta_labels = [character(len=30) :: "delta_CN",&
+      &"delta_q_A", "delta_dipm_A", "delta_qm_A",&
+      &"delta_dipm_e", "delta_qm_e", "delta_dipm_Z", "delta_qm_Z",&
+      &"delta_gap", "delta_chem_pot", "delta_HOAO", "delta_LUAO"]
+   allocate(self%geometry_features)
+   call self%geometry_features%compute_features(mol, wfn , integrals, calc, dcache, prlevel, ctx)
+   call self%geometry_features%compute_extended(mol, wfn , integrals, calc, dcache, prlevel, ctx)
+
+   !get individual coulombic energy contributions in an atomwise vector
+   call self%get_geometry_density_based(mol, wfn, integrals, calc)
+   call self%get_energy_based(mol, wfn, calc, integrals, ccache, dcache, erep, e_gfn2_tot)
+   print_afo = .false.
+   if (prlevel > 1) then
+      print_afo = .true.
+   end if
+
+   call self%get_frontier(mol,calc%bas,wfn,integrals%overlap(:,:),print_afo,ctx)
+
+   call self%compute_extended(mol, wfn, calc)
+   call self%get_extended_frontier(mol, wfn)
+   call self%pack_res(mol%nat, calc%bas%nsh, calc%bas%nsh_at, e_gfn2_tot, tmp_labels, res)
+
+   if (prlevel > 1) then
+      ml_out = 42
+      open (file='ml_feature_tblite.csv', newunit=ml_out)
+      call self%print_out(ml_out, mol%nat, mol%num, mol%id, res)
+   end if
+   deallocate (self%delta_labels)
+   if (debug) then
+      call self%print_timer(ctx)
+   end if
+end subroutine get_xtbml
 
     subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,labels,res)
         use xtbml_functions , only: pack_shellwise
