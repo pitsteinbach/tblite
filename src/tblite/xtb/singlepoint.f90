@@ -39,14 +39,13 @@ module tblite_xtb_singlepoint
    use tblite_timer, only : timer_type, format_time
    use tblite_wavefunction, only : wavefunction_type, get_density_matrix, &
       & get_alpha_beta_occupation, get_mayer_bond_orders, &
-      & magnet_to_updown, updown_to_magnet, occu
+      & magnet_to_updown, updown_to_magnet
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
-   use tblite_disp_d4, only: d4_dispersion, new_d4_dispersion
-   use xtbml_base, only : xtbml_base_type
-   !use xtbml_xyz, only: xtbml_xyz_type
-   use xtbml_class, only: xtbml_type
+   use tblite_xtbml_base, only : xtbml_base_type
+   use tblite_xtbml_xyz, only : xtbml_xyz_type
+   use tblite_xtbml_class, only : xtbml_type
    implicit none
    private
 
@@ -113,6 +112,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    integer :: iscf, spin
 
    call timer%push("total")
+
    if (present(verbosity)) then
       prlevel = verbosity
    else
@@ -293,7 +293,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call timer%pop
    end if
    call ctx%delete_solver(solver)
-   
+
    if (ctx%failed()) return
 
    if (grad) then
@@ -369,8 +369,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
          if (calc%xtbml /= 0) then
             stime = timer%get("xtb-ml features")
             call ctx%message(" - "//"xtb-ml features     "//format_time(stime) &
-               & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")  
-         end if         
+               & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")
+         end if
          call ctx%message("")
       end if
    end block

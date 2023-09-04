@@ -332,50 +332,45 @@ subroutine get_delta_mm_Z(nat, n_a, q, dipm, qp, at, xyz, cn, delta_dipm, delta_
    integer :: a, b, k
    real(wp) :: result, r_ab(3), qp_part(6, nat, n_a)
 
-        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
-        !$acc kernels default(present)
-        delta_dipm = 0.0_wp
-        delta_qp = 0.0_wp
-        qp_part = 0.0_wp
-        !$acc end kernels
-        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
-        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
+   delta_dipm = 0.0_wp
+   delta_qp = 0.0_wp
+   qp_part = 0.0_wp
 
-        !$acc parallel private(r_ab,result)
+   do k = 1, n_a
+      do a = 1, nat
+         do b = 1, nat
+            result = inv_cn_a(a, b, k)
+            r_ab = xyz(:, a) - xyz(:, b)
+            delta_dipm(:, a, k) = delta_dipm(:, a, k) + (-r_ab(:)*q(b))/(result*(cn(b) + 1))
+            !sorting of qp xx,xy,yy,xz,yz,zz
 
-        !$acc loop gang vector collapse(3)
-        do k =1 ,n_a
-        do a = 1, nat
-            do b = 1, nat
-                result =  inv_cn_a(a,b,k)
-                r_ab = xyz(:,a) - xyz(:,b)
-                !$acc atomic
-                delta_dipm(:,a,k) = delta_dipm(:,a,k) + (- r_ab(:) * q(b)) / (result*(cn(b)+1))
-                !sorting of qp xx,xy,yy,xz,yz,zz
-                !$acc atomic
-                delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*( r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*( r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*( r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
-            enddo
-            !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
-            !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
-        enddo
-        enddo
+            delta_qp(1, a, k) = delta_qp(1, a, k) + &
+               (1.5_wp*(r_ab(1)*r_ab(1)*q(b)))/(result*(cn(b) + 1))
 
-        !$acc end parallel
-        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
-        call remove_trac_qp(nat,n_a,delta_qp,qp_part)
+            delta_qp(2, a, k) = delta_qp(2, a, k) + &
+               (1.5_wp*(r_ab(1)*r_ab(2)*q(b)))/(result*(cn(b) + 1))
 
-    end subroutine
+            delta_qp(3, a, k) = delta_qp(3, a, k) + &
+               (1.5_wp*(r_ab(2)*r_ab(2)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(4, a, k) = delta_qp(4, a, k) + &
+               (1.5_wp*(r_ab(1)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(5, a, k) = delta_qp(5, a, k) + &
+               (1.5_wp*(r_ab(2)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(6, a, k) = delta_qp(6, a, k) + &
+               (1.5_wp*(r_ab(3)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+            !qp_part(:,a) = qp_part(:,a) + qp(:,b) / (result*(cn(b)+1))
+         end do
+         !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
+         !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
+      end do
+   end do
+
+   call remove_trac_qp(nat, n_a, delta_qp, qp_part)
+
+end subroutine
 
 subroutine get_delta_mm_p(nat, n_a, q, dipm, qp, at, xyz, cn, delta_dipm, delta_qp) ! the sign of q was changed to respect the charge of the electrons
    implicit none
@@ -385,50 +380,47 @@ subroutine get_delta_mm_p(nat, n_a, q, dipm, qp, at, xyz, cn, delta_dipm, delta_
    integer :: a, b, k
    real(wp) :: result, r_ab(3), qp_part(6, nat, n_a)
 
-        !$acc enter data create(delta_dipm(:, :,:), delta_qp(:, :, :),qp_part(:,:))
-        !$acc kernels default(present)
-        delta_dipm = 0.0_wp
-        delta_qp = 0.0_wp
-        qp_part = 0.0_wp
-        !$acc end kernels
-        !$acc enter data copyin( nat,n_a , q(:), dipm(:, :),&
-        !$acc& qpint(:, :, :),cn(:),inv_cn_a(:,:,:),xyz(:,:))
+   delta_dipm = 0.0_wp
+   delta_qp = 0.0_wp
+   qp_part = 0.0_wp
 
-        !$acc parallel private(r_ab,result)
+   do k = 1, n_a
+      do a = 1, nat
+         do b = 1, nat
+            result = inv_cn_a(a, b, k)
+            r_ab = xyz(:, a) - xyz(:, b)
 
-        !$acc loop gang vector collapse(3)
-        do k =1, n_a
-        do a = 1, nat
-            do b = 1, nat
-                result = inv_cn_a(a,b,k)
-                r_ab = xyz(:,a) - xyz(:,b)
-                !$acc atomic
-                delta_dipm(:,a,k) = delta_dipm(:,a,k) + (dipm(:,b) + r_ab(:) * q(b)) / (result*(cn(b)+1))
-                !sorting of qp xx,xy,yy,xz,yz,zz
-                !$acc atomic
-                delta_qp(1,a,k) = delta_qp(1,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(1,b) + r_ab(1)*dipm(1,b)) - r_ab(1)*r_ab(1)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(2,a,k) = delta_qp(2,a,k) + ( 1.5_wp*(-1*(r_ab(1)*dipm(2,b) + r_ab(2)*dipm(1,b)) - r_ab(1)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(3,a,k) = delta_qp(3,a,k) + ( 1.5_wp*(-1*(r_ab(2)*dipm(2,b) + r_ab(2)*dipm(2,b)) - r_ab(2)*r_ab(2)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(4,a,k) = delta_qp(4,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(1,b) + r_ab(1)*dipm(3,b)) - r_ab(1)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(5,a,k) = delta_qp(5,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(2,b) + r_ab(2)*dipm(3,b)) - r_ab(2)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                !$acc atomic
-                delta_qp(6,a,k) = delta_qp(6,a,k) + ( 1.5_wp*(-1*(r_ab(3)*dipm(3,b) + r_ab(3)*dipm(3,b)) - r_ab(3)*r_ab(3)*q(b))) / (result*(cn(b)+1))
-                qp_part(:,a,k) = qp_part(:,a,k) + qp(:,b) / (result*(cn(b)+1))
-            enddo
-            !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
-            !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
-        enddo
-        enddo
-        !$acc end parallel
+            delta_dipm(:, a, k) = delta_dipm(:, a, k) + &
+               (dipm(:, b) + r_ab(:)*q(b))/(result*(cn(b) + 1))
+            !sorting of qp xx,xy,yy,xz,yz,zz
 
-        !$acc exit data copyout(delta_dipm(:, :,;), delta_qp(:, :,:), qp_part(:,:,:))
-        call remove_trac_qp(nat,n_a,delta_qp,qp_part)
+            delta_qp(1, a, k) = delta_qp(1, a, k) + &
+               (1.5_wp*(-1*(r_ab(1)*dipm(1, b) + r_ab(1)*dipm(1, b)) - r_ab(1)*r_ab(1)*q(b)))/(result*(cn(b) + 1))
 
-    end subroutine
+            delta_qp(2, a, k) = delta_qp(2, a, k) + &
+               (1.5_wp*(-1*(r_ab(1)*dipm(2, b) + r_ab(2)*dipm(1, b)) - r_ab(1)*r_ab(2)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(3, a, k) = delta_qp(3, a, k) + &
+               (1.5_wp*(-1*(r_ab(2)*dipm(2, b) + r_ab(2)*dipm(2, b)) - r_ab(2)*r_ab(2)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(4, a, k) = delta_qp(4, a, k) + &
+               (1.5_wp*(-1*(r_ab(3)*dipm(1, b) + r_ab(1)*dipm(3, b)) - r_ab(1)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(5, a, k) = delta_qp(5, a, k) + &
+               (1.5_wp*(-1*(r_ab(3)*dipm(2, b) + r_ab(2)*dipm(3, b)) - r_ab(2)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+
+            delta_qp(6, a, k) = delta_qp(6, a, k) + &
+               (1.5_wp*(-1*(r_ab(3)*dipm(3, b) + r_ab(3)*dipm(3, b)) - r_ab(3)*r_ab(3)*q(b)))/(result*(cn(b) + 1))
+            qp_part(:, a, k) = qp_part(:, a, k) + qp(:, b)/(result*(cn(b) + 1))
+         end do
+         !delta_dipm(:,a) = dipm(:,a) + delta_dipm(:,a)
+         !delta_qp(:,a) = qp(:,a) + delta_qp(:,a)
+      end do
+   end do
+
+   call remove_trac_qp(nat, n_a, delta_qp, qp_part)
+
+end subroutine
 
 subroutine remove_trac_qp(nat, n_a, qp_matrix, qp_part)
    implicit none
@@ -438,16 +430,16 @@ subroutine remove_trac_qp(nat, n_a, qp_matrix, qp_part)
    integer :: i
    real(wp) :: tii(n_a)
 
-        do i = 1, nat 
-            tii = qp_matrix(1,i,:)+qp_matrix(3,i,:)+qp_matrix(6,i,:)
-            tii = tii/3.0_wp
-            !qp_matrix(1:6,i) = 1.50_wp*qp(1:6,i)
-            qp_matrix(1,i,:) = qp_matrix(1,i,:)-tii
-            qp_matrix(3,i,:) = qp_matrix(3,i,:)-tii
-            qp_matrix(6,i,:) = qp_matrix(6,i,:)-tii
-            qp_matrix(:,i,:) = qp_matrix(:,i,:) + qp_part(:,i,:)
-         enddo
-    end subroutine
+   do i = 1, nat
+      tii = qp_matrix(1, i, :) + qp_matrix(3, i, :) + qp_matrix(6, i, :)
+      tii = tii/3.0_wp
+      !qp_matrix(1:6,i) = 1.50_wp*qp(1:6,i)
+      qp_matrix(1, i, :) = qp_matrix(1, i, :) - tii
+      qp_matrix(3, i, :) = qp_matrix(3, i, :) - tii
+      qp_matrix(6, i, :) = qp_matrix(6, i, :) - tii
+      qp_matrix(:, i, :) = qp_matrix(:, i, :) + qp_part(:, i, :)
+   end do
+end subroutine
 
 subroutine sum_up_mulliken(nat, nshell, aoat2, ash, mull_shell, mull_at)
    implicit none
@@ -456,13 +448,13 @@ subroutine sum_up_mulliken(nat, nshell, aoat2, ash, mull_shell, mull_at)
    real(wp), INTENT(OUT) :: mull_at(nat)
    integer :: i
 
-        mull_at = 0.0_wp
-        
-        do i = 1, nshell
-            mull_at(ash(i)) = mull_at(ash(i)) + mull_shell(i)
-        enddo
+   mull_at = 0.0_wp
 
-    end subroutine
+   do i = 1, nshell
+      mull_at(ash(i)) = mull_at(ash(i)) + mull_shell(i)
+   end do
+
+end subroutine
 
 subroutine mol_set_nuclear_charge(nat, at, id, z)
    implicit none
@@ -515,71 +507,71 @@ subroutine pack_mult_xyz(mult_xyz, res, start_id, nat)
    end do
 end subroutine
 
-    subroutine pack_mult_xyz_shell(mult_xyz,res,start_id,nat,at2nsh)
-        real(wp),intent(in) :: mult_xyz(:,:)
-        type(results_type),intent(inout) :: res
-        integer, intent(in) :: start_id, at2nsh(:)
-        integer :: j, k, nsh, id_tmp
-        nsh = 1 
-    
-        do k = 1, nat
-            id_tmp = start_id
-            j = 1
-            do i = id_tmp, (id_tmp+size(mult_xyz,dim=1)-1)
-                res%ml_features(k,i) = mult_xyz(j,nsh)
-                j = j + 1
-            end do
-            nsh = nsh +1
-            
-            if (at2nsh(k) == 2) then
-                id_tmp = id_tmp + size(mult_xyz,dim=1)
-                j = 1
-                do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1
-                res%ml_features(k,i) = mult_xyz(j,nsh)
-                j = j + 1
-                end do
-                nsh = nsh +1
-            elseif (at2nsh(k) == 3) then
-                id_tmp = id_tmp + size(mult_xyz,dim=1)
-                j = 1
-                do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1
-                res%ml_features(k,i) = mult_xyz(j,nsh)
-                j = j + 1
-                end do
-                nsh = nsh +1
-                id_tmp = id_tmp + size(mult_xyz,dim=1)
-                j = 1
-                do i = id_tmp, id_tmp+size(mult_xyz,dim=1)-1
-                res%ml_features(k,i) = mult_xyz(j,nsh)
-                j = j + 1
-                end do
-                nsh = nsh +1
-            end if
+subroutine pack_mult_xyz_shell(mult_xyz, res, start_id, nat, at2nsh)
+   real(wp), intent(in) :: mult_xyz(:, :)
+   type(results_type), intent(inout) :: res
+   integer, intent(in) :: start_id, at2nsh(:)
+   integer :: j, k, nsh, id_tmp
+   nsh = 1
 
-        end do 
-    end subroutine
+   do k = 1, nat
+      id_tmp = start_id
+      j = 1
+      do i = id_tmp, (id_tmp + size(mult_xyz, dim=1) - 1)
+         res%ml_features(k, i) = mult_xyz(j, nsh)
+         j = j + 1
+      end do
+      nsh = nsh + 1
 
-    subroutine pack_shellwise(shell_prop,res,start_id,at2nsh,nat)
-        type(results_type),intent(inout) :: res
-        real(wp),intent(in) :: shell_prop(:)
-        integer,intent(in) ::  nat,at2nsh(:)
-        integer, intent(in) :: start_id
-        integer :: nsh
-        nsh = 1
-        do i = 1,nat
-            res%ml_features(i,start_id) = shell_prop(nsh) !s shell always filled 
-            nsh = nsh + 1
-            if (at2nsh(i) == 2) then
-            res%ml_features(i,start_id+1) = shell_prop(nsh)
-            nsh = nsh + 1
-            elseif (at2nsh(i) == 3) then
-            res%ml_features(i,start_id+1) = shell_prop(nsh)
-            nsh = nsh + 1
-            res%ml_features(i,start_id+2) = shell_prop(nsh)
-            nsh = nsh + 1
-            end if
-        end do
-    end subroutine
+      if (at2nsh(k) == 2) then
+         id_tmp = id_tmp + size(mult_xyz, dim=1)
+         j = 1
+         do i = id_tmp, id_tmp + size(mult_xyz, dim=1) - 1
+            res%ml_features(k, i) = mult_xyz(j, nsh)
+            j = j + 1
+         end do
+         nsh = nsh + 1
+      elseif (at2nsh(k) == 3) then
+         id_tmp = id_tmp + size(mult_xyz, dim=1)
+         j = 1
+         do i = id_tmp, id_tmp + size(mult_xyz, dim=1) - 1
+            res%ml_features(k, i) = mult_xyz(j, nsh)
+            j = j + 1
+         end do
+         nsh = nsh + 1
+         id_tmp = id_tmp + size(mult_xyz, dim=1)
+         j = 1
+         do i = id_tmp, id_tmp + size(mult_xyz, dim=1) - 1
+            res%ml_features(k, i) = mult_xyz(j, nsh)
+            j = j + 1
+         end do
+         nsh = nsh + 1
+      end if
+
+   end do
+end subroutine
+
+subroutine pack_shellwise(shell_prop, res, start_id, at2nsh, nat)
+   type(results_type), intent(inout) :: res
+   real(wp), intent(in) :: shell_prop(:)
+   integer, intent(in) ::  nat, at2nsh(:)
+   integer, intent(in) :: start_id
+   integer :: nsh
+   nsh = 1
+   do i = 1, nat
+      res%ml_features(i, start_id) = shell_prop(nsh) !s shell always filled
+      nsh = nsh + 1
+      if (at2nsh(i) == 2) then
+         res%ml_features(i, start_id + 1) = shell_prop(nsh)
+         nsh = nsh + 1
+      elseif (at2nsh(i) == 3) then
+         res%ml_features(i, start_id + 1) = shell_prop(nsh)
+         nsh = nsh + 1
+         res%ml_features(i, start_id + 2) = shell_prop(nsh)
+         nsh = nsh + 1
+      end if
+   end do
+end subroutine
 
 subroutine get_beta(nat, n_a, at, xyz, beta)
    implicit none
@@ -588,27 +580,27 @@ subroutine get_beta(nat, n_a, at, xyz, beta)
    real(wp), INTENT(IN) :: xyz(3, nat)
    real(wp) :: beta(nat, nat, n_a)
 
-        real(wp) :: sigma_tot, sigma(nat,nat,n_a)
-        real(wp) :: damp_func
+   real(wp) :: sigma_tot, sigma(nat, nat, n_a)
+   real(wp) :: damp_func
 
-        integer :: A,B,k
-        do k = 1, n_a
-        do A = 1,nat
-            do B = 1,nat
-                damp_func = inv_cn_a(A,B,k)
-                sigma(A,B,k) = 1/ damp_func
-            enddo
-        enddo
-        enddo
+   integer :: A, B, k
+   do k = 1, n_a
+      do A = 1, nat
+         do B = 1, nat
+            damp_func = inv_cn_a(A, B, k)
+            sigma(A, B, k) = 1/damp_func
+         end do
+      end do
+   end do
 
-        do k = 1, n_a
-            do A = 1,nat
-                do B = 1, nat
-                    beta(A,B,k) = sigma(A,B,k) / sum(sigma(A,:,k))
-                enddo
-            enddo
-        enddo
-    end subroutine
+   do k = 1, n_a
+      do A = 1, nat
+         do B = 1, nat
+            beta(A, B, k) = sigma(A, B, k)/sum(sigma(A, :, k))
+         end do
+      end do
+   end do
+end subroutine
 
 subroutine get_chem_pot_ext(nat, n_a, beta, chempot, chempot_ext)
    implicit none
@@ -621,11 +613,11 @@ subroutine get_chem_pot_ext(nat, n_a, beta, chempot, chempot_ext)
       do A = 1, nat
          do B = 1, nat
 
-                chempot_ext(A,k) = chempot_ext(A,k) + beta(A,B,k) * chempot(B)
-            enddo
-        enddo
-        enddo
-    end subroutine
+            chempot_ext(A, k) = chempot_ext(A, k) + beta(A, B, k)*chempot(B)
+         end do
+      end do
+   end do
+end subroutine
 
 subroutine get_e_gap_ext(nat, n_a, hl_gap, beta, e_gap, e_gap_ext)
    implicit none
@@ -636,18 +628,18 @@ subroutine get_e_gap_ext(nat, n_a, hl_gap, beta, e_gap, e_gap_ext)
    real(wp) :: e_gap_ext(nat, n_a), e_gap_tot
    integer :: A, B, k
 
-        e_gap_tot = 0.0_wp
-        do k = 1, n_a
-        do A = 1,nat
-            e_gap_tot = e_gap_tot + e_gap(A)
-            do B = 1,nat
-                e_gap_ext(A,k) = e_gap_ext(A,k) + beta(A,B,k) * e_gap(B)
-            enddo
-        enddo
-        enddo
-        ! correction factor for mol. properties
-        !e_gap_ext = e_gap_ext * (hl_gap * nat/e_gap_tot)
-    end subroutine
+   e_gap_tot = 0.0_wp
+   do k = 1, n_a
+      do A = 1, nat
+         e_gap_tot = e_gap_tot + e_gap(A)
+         do B = 1, nat
+            e_gap_ext(A, k) = e_gap_ext(A, k) + beta(A, B, k)*e_gap(B)
+         end do
+      end do
+   end do
+   ! correction factor for mol. properties
+   !e_gap_ext = e_gap_ext * (hl_gap * nat/e_gap_tot)
+end subroutine
 
 subroutine get_ehoao_ext(nat, n_a, chempot_ext, e_gap_ext, ehoao_ext)
    implicit none
@@ -677,4 +669,4 @@ subroutine get_eluao_ext(nat, n_a, chempot_ext, e_gap_ext, eluao_ext)
    end do
 end subroutine
 
-end module xtbml_functions
+end module tblite_xtbml_functions

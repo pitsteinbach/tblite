@@ -16,6 +16,7 @@
 
 subdir('unit')
 subdir('validation')
+subdir('validation_xtbml')
 
 if get_option('api')
   subdir('api')

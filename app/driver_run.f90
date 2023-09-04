@@ -138,7 +138,6 @@ subroutine run_main(config, error)
          elseif (config%xtbmlxyz) then
             calc%xtbml = 2
          endif
-
       case("gfn1")
          call new_gfn1_calculator(calc, mol)
       case("ipea1")
