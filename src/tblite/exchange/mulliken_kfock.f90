@@ -9,7 +9,7 @@ module tblite_mulliken_kfock
    use tblite_basis_type, only : basis_type
    implicit none
    private
-   logical, parameter :: allowincr = .true.
+   logical :: allowincr = .true.
    public :: new_mulliken_exchange
 
    type,public, extends(exchange_type) :: mulliken_kfock_type
@@ -238,7 +238,7 @@ end subroutine view
 
    !> Create a new Mulliken approximated exchange container
 subroutine new_range_separated_mulliken_k_fock(self, mol, hardness, allowsingle, incremental, frscale, &
-      & omega, lrscale, average, exp, bas)
+      & omega, lrscale, average, exp, incr,bas)
    !> Instance of the multipole container
    type(mulliken_kfock_type), intent(out) :: self
    !> Molecular structure data
@@ -262,8 +262,9 @@ subroutine new_range_separated_mulliken_k_fock(self, mol, hardness, allowsingle,
    !> 1 =  Mataga
    !> 2 = Klopman-type
    integer :: exp
+   logical :: incr
    type(basis_type) :: bas
-
+    allowincr = incr
    self%nao = bas%nao
    allocate(self%aonum(bas%nsh), self%sh2at(bas%nsh))
    self%aonum = bas%nao_sh
@@ -361,7 +362,6 @@ subroutine get_potential_w_overlap(self, mol, cache, wfn, pot, overlap)
       !if (.not.allocated(ptr%curr_D))allocate(ptr%curr_D(self%nao, self%nao), source= wfn%density(:,:,1))
    endif
 
-   write(*,*) ptr%prev_F(1,1)
 end subroutine
 
 subroutine get_energy(self, mol, cache, wfn ,energies)

@@ -385,7 +385,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
          end if    
          if (allocated(calc%exchange)) then
             stime = timer%get("exchange")
-            call ctx%message(" - "//"exchange     "//format_time(stime) &
+            call ctx%message(" - "//"exchange         "//format_time(stime) &
                & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")  
          end if  
          call ctx%message("")

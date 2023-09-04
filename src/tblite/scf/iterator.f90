@@ -90,6 +90,7 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
 
    real(wp), allocatable :: eao(:)
    real(wp) :: ts
+   if (present(exchange)) then 
 
    if (iscf > 1) then
       call mixer%next(error)
@@ -145,6 +146,61 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    end if
    if (present(exchange).and. iscf > 1) then 
       call exchange%get_energy(mol, ecache, wfn, energies)
+   end if
+   else
+      if (iscf > 0) then
+         call mixer%next(error)
+         if (allocated(error)) return
+         call get_mixer(mixer, bas, wfn, info)
+      end if
+   
+      iscf = iscf + 1
+      call pot%reset
+      if (present(coulomb)) then
+         call coulomb%get_potential(mol, cache, wfn, pot)
+      end if
+      if (present(dispersion)) then
+         call dispersion%get_potential(mol, dcache, wfn, pot)
+      end if
+      if (present(interactions)) then
+         call interactions%get_potential(mol, icache, wfn, pot)
+      end if
+     
+      call add_pot_to_h1(bas, ints, pot, wfn%coeff)
+      
+      call set_mixer(mixer, wfn, info)
+   
+      call get_density(wfn, solver, ints, ts, error)
+      if (allocated(error)) return
+   
+      call get_mulliken_shell_charges(bas, ints%overlap, wfn%density, wfn%n0sh, &
+         & wfn%qsh)
+      call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
+   
+      call get_mulliken_atomic_multipoles(bas, ints%dipole, wfn%density, &
+         & wfn%dpat)
+      call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
+         & wfn%qpat)
+   
+      call  diff_mixer(mixer, wfn, info)
+   
+      allocate(eao(bas%nao), source=0.0_wp)
+      call get_electronic_energy(ints%hamiltonian, wfn%density, eao)
+   
+      energies(:) = ts / size(energies)
+      call reduce(energies, eao, bas%ao2at)
+      if (present(coulomb)) then
+         call coulomb%get_energy(mol, cache, wfn, energies)
+      end if
+      if (present(dispersion)) then
+         call dispersion%get_energy(mol, dcache, wfn, energies)
+      end if
+      if (present(interactions)) then
+         call interactions%get_energy(mol, icache, wfn, energies)
+      end if
+      if (present(exchange).and. iscf > 1) then 
+         call exchange%get_energy(mol, ecache, wfn, energies)
+      end if
    end if
 end subroutine next_scf
 

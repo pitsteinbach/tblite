@@ -82,6 +82,8 @@ module tblite_cli
       logical :: xtbml = .false.
       !> Compute xtbml features and printout cartesian multipole monets instead of norm
       logical :: xtbmlxyz = .false.
+      !> use sqmbox framework
+      logical :: sqmbox = .false.
    end type run_config
 
    type, extends(driver_config) :: param_config
@@ -426,6 +428,9 @@ subroutine get_run_arguments(config, list, start, error)
       case("--xtbml_xyz")
          config%method = "gfn2"
          config%xtbmlxyz = .true. 
+      case("--sqmbox")
+         config%sqmbox = .true.
+         if (.not.allocated(config%param)) call fatal_error(error,message="Currently the paramters need to be entered manually!")
       end select
    end do
 

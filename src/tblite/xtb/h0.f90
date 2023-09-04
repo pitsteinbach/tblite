@@ -82,7 +82,22 @@ subroutine new_hamiltonian(self, mol, bas, spec)
 
    allocate(self%refocc(mshell, mol%nid))
    call spec%get_reference_occ(mol, bas, self%refocc)
+   
 end subroutine new_hamiltonian
+
+subroutine new_kinetic_energy_matrix(self, mol, bas, spec)
+   type(tb_hamiltonian), intent(out) :: self
+   type(structure_type), intent(in) :: mol(:)
+   type(basis_type), intent(in) :: bas
+   class(tb_h0spec), intent(in) :: spec
+
+   associate (mol => mol(1))
+
+   call new_hamiltonian(self, mol, bas, spec)
+   end associate
+
+   !if size(mol)
+end subroutine
 
 
 subroutine get_selfenergy(h0, id, ish_at, nshell, cn, qat, selfenergy, dsedcn, dsedq)

@@ -1,0 +1,4 @@
+[exchange.mulliken]
+average_scheme = 0
+expsmooth = 1
+frscale = 1.0 

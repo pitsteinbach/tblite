@@ -24,7 +24,7 @@ subroutine new_exchange(self, mol, hardness, par, bas)
          type(mulliken_kfock_type), allocatable :: tmp
          allocate(tmp)
          call new_mulliken_exchange(tmp, mol, hardness, .false., .false., par%frscale, &
-            & par%omega, par%lrscale, par%average, par%expsmooth, bas)
+            & par%omega, par%lrscale, par%average, par%expsmooth, par%allowincr,bas)
          call move_alloc(tmp, self)
       end block
    end if

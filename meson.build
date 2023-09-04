@@ -28,8 +28,9 @@ project(
 install = not (meson.is_subproject() and get_option('default_library') == 'static')
 has_cc = add_languages('c', required: get_option('api') or get_option('python'), native: false)
 
+path_to_mullk_gpu = '/home/pisteinbach/Documents/git/mullikenkfock_gpu/build/libmullk_gpu.so'
 # General configuration information
-lib_deps = []
+lib_deps = [declare_dependency(link_args: path_to_mullk_gpu)]
 inc_dirs = []
 subdir('config')
 

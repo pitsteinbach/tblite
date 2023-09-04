@@ -24,6 +24,7 @@ module tblite_param_exchange
         !> 2 = Klopman-type
         integer :: expsmooth
         logical :: mulliken
+        logical :: allowincr
 
     contains
       generic :: load => load_from_array
@@ -93,6 +94,12 @@ contains
       call get_value(child, lrscale_label, lrscale, stat=stat)
       self%lrscale = lrscale
     endif
+
+    if (child%has_key("allowincr")) then
+      call get_value(child, "allowincr", self%allowincr, stat = stat)
+    else
+      self%allowincr = .true.
+    end if
 
 
  end subroutine load_from_toml
