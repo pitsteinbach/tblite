@@ -32,117 +32,122 @@ module tblite_xtbml_class
    private
    type(timer_type) :: timer
 
-   type, public, abstract :: xtbml_type
-      character(len=30), allocatable :: feature_labels(:)
-      character(len=30), allocatable :: delta_labels(:)
-      type(xtbml_geometry_features_type), allocatable :: geometry_features
-
-      real(wp), allocatable :: a(:)
-      real(wp), allocatable ::  w_tot(:)
-      !
-      !
-      real(wp), allocatable ::  mulliken_shell(:)
-      real(wp), allocatable ::  dipm_shell(:)
-      real(wp), allocatable ::  qm_shell(:)
-      real(wp), allocatable ::  partial_charge_atom(:)
-      real(wp), allocatable ::  delta_partial_charge(:, :)
-      real(wp), allocatable ::  dipm_atom(:)
-      real(wp), allocatable ::  delta_dipm(:, :)
-      real(wp), allocatable ::  qm_atom(:)
-      real(wp), allocatable ::  delta_qm(:, :)
-      real(wp), allocatable ::  delta_dipm_e(:, :)
-      real(wp), allocatable ::  delta_qm_e(:, :)
-      real(wp), allocatable ::  delta_dipm_Z(:, :)
-      real(wp), allocatable ::  delta_qm_Z(:, :)
-      !
-      !> shell dipm xyz
-      real(wp), allocatable ::  dipm_shell_xyz(:, :)
-      !> dipm xyz
-      real(wp), allocatable ::  dipm_atom_xyz(:, :)
-      !> delta dipm xyz
-      real(wp), allocatable ::  delta_dipm_xyz(:, :, :)
-      !> shell qm xyz
-      real(wp), allocatable ::  qm_shell_xyz(:, :)
-      !> qm xyz
-      real(wp), allocatable ::  qm_atom_xyz(:, :)
-      !> delta qm xyz
-      real(wp), allocatable ::  delta_qm_xyz(:, :, :)
-      !
-      !> delta dipm only electron effect
-      real(wp), allocatable ::  delta_dipm_e_xyz(:, :, :)
-      !> delta qm only electron effect
-      real(wp), allocatable ::  delta_qm_e_xyz(:, :, :)
-      !> delta dipm only nuclear effect
-      real(wp), allocatable ::  delta_dipm_Z_xyz(:, :, :)
-      !> delta qm only nuclear effect
-      real(wp), allocatable ::  delta_qm_Z_xyz(:, :, :)
-      !
-      !
-      !seperate alpha and beta
-      real(wp), allocatable ::  response(:)
-      real(wp), allocatable ::  egap(:)
-      real(wp), allocatable ::  chempot(:)
-      real(wp), allocatable ::  ehoao_a(:)
-      real(wp), allocatable ::  eluao_a(:)
-      real(wp), allocatable ::  ehoao_b(:)
-      real(wp), allocatable ::  eluao_b(:)
-      real(wp), allocatable ::  e_rep_atom(:)
-      real(wp), allocatable ::  e_EHT(:)
-      real(wp), allocatable ::  e_disp_2(:)
-      real(wp), allocatable ::  e_disp_3(:)
-      real(wp), allocatable ::  e_ies_ixc(:)
-      real(wp), allocatable ::  e_aes(:)
-      real(wp), allocatable ::  e_axc(:)
-      !energy based features; extensions
-      real(wp), allocatable ::  delta_chempot(:, :)
-      real(wp), allocatable ::  delta_egap(:, :)
-      real(wp), allocatable ::  delta_eluao(:, :)
-      real(wp), allocatable ::  delta_ehoao(:, :)
-   contains
-      procedure, private :: allocate=>allocate_ml
-      procedure :: get_geometry_density_based
-      procedure :: get_energy_based
-      procedure :: get_frontier
-      procedure :: get_extended_frontier
-      !> Generate the xtbml features
-      procedure(get_xtbml), deferred :: get_xtbml
-      procedure(pack_res), deferred :: pack_res
-      procedure :: compute_extended
-      procedure :: print_out
-      procedure :: pop_a
-      procedure :: print_timer
-   end type xtbml_type
-
-   !<
-   abstract interface
-      !> Routine that computes the xtbml features
-      subroutine get_xtbml(self, mol, wfn, integrals, calc, ccache, dcache, rcache, prlevel, ctx, res)
-      import :: wp, structure_type, wavefunction_type, integral_type, &
-         xtb_calculator, container_cache, results_type, xtbml_type, context_type
-      class(xtbml_type), intent(inout) :: self
-      !> Molecular structure data
-      type(structure_type), intent(in) :: mol
-      !> Wavefunction strcuture data
-      type(wavefunction_type), intent(in) :: wfn
-      type(integral_type) :: integrals
-      !> Single-point calculator
-      type(xtb_calculator), intent(in) :: calc
-      type(container_cache), intent(inout) :: ccache, dcache, rcache
-      type(results_type), intent(inout) :: res
-      type(context_type),intent(inout) :: ctx
-      integer, intent(in) :: prlevel
-      endsubroutine get_xtbml
-      !> Routine to pack the xtbml features into the result container
-      subroutine pack_res(self, nat, nsh_tot, at2nsh, e_tot, labels, res)
-      import :: wp, results_type, xtbml_type
-      class(xtbml_type), intent(inout) :: self
-      integer, intent(in) :: nat, nsh_tot, at2nsh(nat)
-      real(wp), intent(in) :: e_tot
-      type(results_type), intent(inout) :: res
-      character(len=30), intent(in) :: labels(:)
-      endsubroutine pack_res
-   end interface
-contains
+    type,public,abstract :: xtbml_type
+        integer :: n_features
+        character(len=30),allocatable :: feature_labels(:) 
+        character(len=30),allocatable :: delta_labels(:) 
+        real(wp),allocatable :: a(:)
+        real(wp),ALLOCATABLE ::  w_tot  (:)
+        !
+        !
+        real(wp),ALLOCATABLE ::  cn_atom  (:) 
+        real(wp),ALLOCATABLE ::  delta_cn  (:,:)
+        !
+        !
+        real(wp),ALLOCATABLE ::  mulliken_shell (:)
+        real(wp),ALLOCATABLE ::  dipm_shell (:)
+        real(wp),ALLOCATABLE ::  qm_shell (:)
+        real(wp),ALLOCATABLE ::  partial_charge_atom  (:)
+        real(wp),ALLOCATABLE ::  delta_partial_charge  (:,:)
+        real(wp),ALLOCATABLE ::  dipm_atom  (:)
+        real(wp),ALLOCATABLE ::  delta_dipm  (:,:)
+        real(wp),ALLOCATABLE ::  qm_atom  (:)
+        real(wp),ALLOCATABLE ::  delta_qm  (:,:)
+        real(wp),ALLOCATABLE ::  delta_dipm_e  (:,:)
+        real(wp),ALLOCATABLE ::  delta_qm_e  (:,:)
+        real(wp),ALLOCATABLE ::  delta_dipm_Z  (:,:)
+        real(wp),ALLOCATABLE ::  delta_qm_Z  (:,:)
+        !
+        !> shell dipm xyz
+        real(wp),ALLOCATABLE ::  dipm_shell_xyz (:,:)
+        !> dipm xyz
+        real(wp),ALLOCATABLE ::  dipm_atom_xyz  (:,:)
+        !> delta dipm xyz
+        real(wp),ALLOCATABLE ::  delta_dipm_xyz  (:,:,:)
+        !> shell qm xyz
+        real(wp),ALLOCATABLE ::  qm_shell_xyz (:,:)
+        !> qm xyz
+        real(wp),ALLOCATABLE ::  qm_atom_xyz  (:,:)
+        !> delta qm xyz
+        real(wp),ALLOCATABLE ::  delta_qm_xyz  (:,:,:)
+        !
+        !> delta dipm only electron effect
+        real(wp),ALLOCATABLE ::  delta_dipm_e_xyz (:,:,:)
+        !> delta qm only electron effect
+        real(wp),ALLOCATABLE ::  delta_qm_e_xyz (:,:,:)
+        !> delta dipm only nuclear effect
+        real(wp),ALLOCATABLE ::  delta_dipm_Z_xyz (:,:,:)
+        !> delta qm only nuclear effect
+        real(wp),ALLOCATABLE ::  delta_qm_Z_xyz (:,:,:)
+        !
+        !
+        !seperate alpha and beta
+        real(wp),ALLOCATABLE ::  response  (:)
+        real(wp),ALLOCATABLE ::  egap  (:)
+        real(wp),ALLOCATABLE ::  chempot  (:)
+        real(wp),ALLOCATABLE ::  ehoao_a  (:)
+        real(wp),ALLOCATABLE ::  eluao_a  (:)
+        real(wp),ALLOCATABLE ::  ehoao_b  (:)
+        real(wp),ALLOCATABLE ::  eluao_b  (:)
+        real(wp),ALLOCATABLE ::  e_rep_atom  (:)
+        real(wp),ALLOCATABLE ::  e_EHT  (:)
+        real(wp),ALLOCATABLE ::  e_disp_2  (:)
+        real(wp),ALLOCATABLE ::  e_disp_3  (:)
+        real(wp),ALLOCATABLE ::  e_ies_ixc  (:)
+        real(wp),ALLOCATABLE ::  e_aes  (:)
+        real(wp),ALLOCATABLE ::  e_axc (:)
+        !energy based features; extensions
+        real(wp),ALLOCATABLE ::  delta_chempot(:,:)
+        real(wp),ALLOCATABLE ::  delta_egap(:,:)
+        real(wp),ALLOCATABLE ::  delta_eluao(:,:)
+        real(wp),ALLOCATABLE ::  delta_ehoao(:,:)
+    contains
+        procedure,private :: allocate => allocate_ml
+        procedure :: get_geometry_density_based
+        procedure :: get_energy_based
+        procedure :: get_extended_frontier
+        !> Generate the xtbml features
+        procedure(get_xtbml),deferred :: get_xtbml
+        procedure(pack_res),deferred :: pack_res
+        procedure :: compute_extended
+        procedure :: print_out
+        procedure :: pop_a
+        procedure :: print_timer
+    end type xtbml_type
+        
+    !<
+    abstract interface
+        !> Routine that computes the xtbml features
+        subroutine get_xtbml(self,mol,wfn,integrals,erep,calc,ccache,dcache,prlevel,a_array,res)
+            import :: wp, structure_type, wavefunction_type,integral_type,&
+                    xtb_calculator,container_cache,results_type,xtbml_type
+            class(xtbml_type),intent(inout) :: self
+            !> Molecular structure data
+            type(structure_type), intent(in) :: mol
+            !> Wavefunction strcuture data
+            type(wavefunction_type), intent(in) :: wfn
+            type(integral_type) :: integrals
+            !> Single-point calculator
+            type(xtb_calculator), intent(in) :: calc
+            type(container_cache),intent(inout) :: ccache,dcache
+            type(results_type), intent(inout) :: res
+            real(wp), INTENT(IN) ::  erep(mol%nat)
+            integer, intent(in) :: prlevel
+            real(wp), intent(in),allocatable  :: a_array(:)
+       
+        end subroutine get_xtbml
+        !> Routine to pack the xtbml features into the result container
+        subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,labels,res)
+            import :: wp,results_type, xtbml_type
+            class(xtbml_type),intent(inout) :: self
+            integer, intent(in) :: nat,nsh_tot,at2nsh(nat)
+            real(wp), intent(in) :: e_tot
+            type(results_type),intent(inout) :: res
+            character(len=30),intent(in) :: labels(:)
+        end subroutine pack_res
+            
+    end interface
+    contains
 
 subroutine allocate_ml(self, nat, nshell, n_a)
    implicit none
