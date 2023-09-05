@@ -27,6 +27,7 @@ module tblite_xtbml_class
    use tblite_timer, only : timer_type, format_time
    use tblite_context, only : context_type
    use tblite_xtbml_geometry_based, only : xtbml_geometry_features_type
+   use tblite_xtbml_convolution, only : xtbml_convolution_type
    implicit none
    character(len=12), parameter :: toml_file="a_array.toml"
    private
@@ -35,50 +36,16 @@ module tblite_xtbml_class
     type,public,abstract :: xtbml_type
         integer :: n_features
         character(len=30),allocatable :: feature_labels(:) 
-        character(len=30),allocatable :: delta_labels(:) 
-        real(wp),allocatable :: a(:)
+        character(len=30),allocatable :: delta_labels(:)
+        !> Container for geometry based features 
+        type(xtbml_geometry_features_type), allocatable :: geometry_features
+        !> Container conatining convolution information for extended features
+        type(xtbml_convolution_type), allocatable :: convolution
+
         real(wp),ALLOCATABLE ::  w_tot  (:)
         !
         !
-        real(wp),ALLOCATABLE ::  cn_atom  (:) 
-        real(wp),ALLOCATABLE ::  delta_cn  (:,:)
-        !
-        !
-        real(wp),ALLOCATABLE ::  mulliken_shell (:)
-        real(wp),ALLOCATABLE ::  dipm_shell (:)
-        real(wp),ALLOCATABLE ::  qm_shell (:)
-        real(wp),ALLOCATABLE ::  partial_charge_atom  (:)
-        real(wp),ALLOCATABLE ::  delta_partial_charge  (:,:)
-        real(wp),ALLOCATABLE ::  dipm_atom  (:)
-        real(wp),ALLOCATABLE ::  delta_dipm  (:,:)
-        real(wp),ALLOCATABLE ::  qm_atom  (:)
-        real(wp),ALLOCATABLE ::  delta_qm  (:,:)
-        real(wp),ALLOCATABLE ::  delta_dipm_e  (:,:)
-        real(wp),ALLOCATABLE ::  delta_qm_e  (:,:)
-        real(wp),ALLOCATABLE ::  delta_dipm_Z  (:,:)
-        real(wp),ALLOCATABLE ::  delta_qm_Z  (:,:)
-        !
-        !> shell dipm xyz
-        real(wp),ALLOCATABLE ::  dipm_shell_xyz (:,:)
-        !> dipm xyz
-        real(wp),ALLOCATABLE ::  dipm_atom_xyz  (:,:)
-        !> delta dipm xyz
-        real(wp),ALLOCATABLE ::  delta_dipm_xyz  (:,:,:)
-        !> shell qm xyz
-        real(wp),ALLOCATABLE ::  qm_shell_xyz (:,:)
-        !> qm xyz
-        real(wp),ALLOCATABLE ::  qm_atom_xyz  (:,:)
-        !> delta qm xyz
-        real(wp),ALLOCATABLE ::  delta_qm_xyz  (:,:,:)
-        !
-        !> delta dipm only electron effect
-        real(wp),ALLOCATABLE ::  delta_dipm_e_xyz (:,:,:)
-        !> delta qm only electron effect
-        real(wp),ALLOCATABLE ::  delta_qm_e_xyz (:,:,:)
-        !> delta dipm only nuclear effect
-        real(wp),ALLOCATABLE ::  delta_dipm_Z_xyz (:,:,:)
-        !> delta qm only nuclear effect
-        real(wp),ALLOCATABLE ::  delta_qm_Z_xyz (:,:,:)
+   
         !
         !
         !seperate alpha and beta
@@ -134,7 +101,6 @@ module tblite_xtbml_class
             real(wp), INTENT(IN) ::  erep(mol%nat)
             integer, intent(in) :: prlevel
             real(wp), intent(in),allocatable  :: a_array(:)
-       
         end subroutine get_xtbml
         !> Routine to pack the xtbml features into the result container
         subroutine pack_res(self,nat,nsh_tot,at2nsh,e_tot,labels,res)
@@ -156,35 +122,7 @@ subroutine allocate_ml(self, nat, nshell, n_a)
 
    allocate(self%w_tot(nat), source=0.0_wp)
    !
-   allocate(self%cn_atom(nat), source=0.0_wp)
-   allocate(self%delta_cn(nat, n_a), source=0.0_wp)
-   !
-   allocate(self%mulliken_shell(nshell), source=0.0_wp)
-   allocate(self%dipm_shell(nshell), source=0.0_wp)
-   allocate(self%qm_shell(nshell), source=0.0_wp)
-   allocate(self%partial_charge_atom(nat), source=0.0_wp)
-   allocate(self%delta_partial_charge(nat, n_a), source=0.0_wp)
-   allocate(self%dipm_atom(nat), source=0.0_wp)
-   allocate(self%delta_dipm(nat, n_a), source=0.0_wp)
-   allocate(self%qm_atom(nat), source=0.0_wp)
-   allocate(self%delta_qm(nat, n_a), source=0.0_wp)
-   allocate(self%delta_dipm_e(nat, n_a), source=0.0_wp)
-   allocate(self%delta_qm_e(nat, n_a), source=0.0_wp)
-   allocate(self%delta_dipm_Z(nat, n_a), source=0.0_wp)
-   allocate(self%delta_qm_Z(nat, n_a), source=0.0_wp)
-   !
-   allocate(self%dipm_shell_xyz(3, nshell), source=0.0_wp)
-   allocate(self%dipm_atom_xyz(3, nat), source=0.0_wp)
-   allocate(self%delta_dipm_xyz(3, nat, n_a), source=0.0_wp)
-   allocate(self%qm_shell_xyz(6, nshell), source=0.0_wp)
-   allocate(self%qm_atom_xyz(6, nat), source=0.0_wp)
-   allocate(self%delta_qm_xyz(6, nat, n_a), source=0.0_wp)
-   !
-   allocate(self%delta_dipm_e_xyz(3, nat, n_a), source=0.0_wp)
-   allocate(self%delta_qm_e_xyz(6, nat, n_a), source=0.0_wp)
-   allocate(self%delta_dipm_Z_xyz(3, nat, n_a), source=0.0_wp)
-   allocate(self%delta_qm_Z_xyz(6, nat, n_a), source=0.0_wp)
-   !seperate alpha and beta
+
    allocate(self%response(nat), source=0.0_wp)
    allocate(self%egap(nat), source=0.0_wp)
    allocate(self%chempot(nat), source=0.0_wp)
@@ -207,58 +145,6 @@ subroutine allocate_ml(self, nat, nshell, n_a)
    allocate(self%delta_ehoao(nat, n_a), source=0.0_wp)
    endsubroutine allocate_ml
 
-subroutine get_geometry_density_based(self, mol, wfn, integrals, calc)
-   use tblite_data_covrad, only : get_covalent_rad
-   use tblite_ncoord_exp, only : new_exp_ncoord, exp_ncoord_type
-   use tblite_xtbml_functions
-   use tblite_wavefunction_mulliken, only : get_mulliken_shell_multipoles
-   class(xtbml_type) :: self
-   !> Molecular structure data
-   type(structure_type), intent(in) :: mol
-   !> Wavefunction strcuture data
-   type(wavefunction_type), intent(in) :: wfn
-   type(integral_type) :: integrals
-   !> Single-point calculator
-   type(xtb_calculator), intent(in) :: calc
-   type(exp_ncoord_type) :: ncoord_exp
-   integer :: mu
-   real(wp) :: z(mol%nat), dipm_shell_tmp(3, calc%bas%nsh, 1), qm_shell_tmp(6, calc%bas%nsh, 1)
-   !allocate self type
-   call timer%push("total")
-   call timer%push("geometric")
-   call self%allocate(mol%nat, calc%bas%nsh, size(self%a))
-   call get_rcov(mol)
-   call new_exp_ncoord(ncoord_exp, mol)
-   call ncoord_exp%get_cn(mol, self%cn_atom)
-   call timer%pop()
-
-   call timer%push("density")
-   !shellwise mulliken charges
-   call mulliken_shellwise(calc%bas%nao, calc%bas%nsh, calc%bas%ao2sh, wfn%density(:, :, wfn%nspin), &
-      integrals%overlap, self%mulliken_shell)
-   !call sum_up_spin(wfn%qat,self%partial_charge_atom)
-   call mol_set_nuclear_charge(mol%nat, mol%num, mol%id, z)
-
-   do mu=1, calc%bas%nsh
-      self%partial_charge_atom(calc%bas%sh2at(mu))=self%partial_charge_atom(calc%bas%sh2at(mu))+self%mulliken_shell(mu)
-   enddo
-   self%partial_charge_atom=-self%partial_charge_atom+z
-   !multipole moments shellwise und then atomwise
-
-   call get_mulliken_shell_multipoles(calc%bas, integrals%dipole, wfn%density, &
-      & dipm_shell_tmp)
-   self%dipm_shell_xyz=dipm_shell_tmp(:, :, 1)
-   call get_mulliken_shell_multipoles(calc%bas, integrals%quadrupole, wfn%density, &
-      & qm_shell_tmp)
-   self%qm_shell_xyz=qm_shell_tmp(:, :, 1)
-
-   self%dipm_atom_xyz=wfn%dpat(:, :, 1)
-   self%qm_atom_xyz=wfn%qpat(:, :, 1)
-
-   call comp_norm(calc%bas%nsh, dipm_shell_tmp, qm_shell_tmp, self%dipm_shell, self%qm_shell)
-   call comp_norm(mol%nat, wfn%dpat, wfn%qpat, self%dipm_atom, self%qm_atom)
-   call timer%pop()
-end subroutine get_geometry_density_based
 
 subroutine get_energy_based(self, mol, wfn, calc, integrals, ccache, dcache, erep, e_gfn2_tot)
    use tblite_container, only : container_cache
