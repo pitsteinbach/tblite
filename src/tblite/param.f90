@@ -49,7 +49,7 @@ module tblite_param
       & k_charge = "charge", k_thirdorder = "thirdorder", k_multipole = "multipole", &
       & k_halogen = "halogen", k_hamiltonian = "hamiltonian", k_element = "element", &
       & k_meta = "meta", k_version = "version", k_name = "name", k_reference = "reference", &
-      & k_format = "format",  k_ml_features = "ml-features", k_post_proc = "post-processing"
+      & k_format = "format", k_post_proc = "post-processing"
 
    !> Current parameter format version
    integer, parameter :: current_format = 1

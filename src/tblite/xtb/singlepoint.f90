@@ -314,7 +314,6 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       end do
       call updown_to_magnet(wfn%density)
       call updown_to_magnet(wdensity)
-      !print '(3es20.13)', sigma
       call get_hamiltonian_gradient(mol, lattr, list, calc%bas, calc%h0, selfenergy, &
          & dsedcn, pot, wfn%density, wdensity, dEdcn, gradient, sigma)
       call magnet_to_updown(wfn%density)
@@ -331,9 +330,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call timer%push("post processing")
       call collect_containers_caches(rcache, ccache, hcache, dcache, icache, calc, cache_list)
       call post_process%compute(mol, wfn, ints, calc, cache_list, ctx, prlevel)
-      !if (prlevel > 1) then 
-         call post_process%print_csv(mol)
-      !end if
+      call post_process%print_csv(mol)
       call ctx%message(post_process%info(prlevel, " | "))
       call post_process%print_timer(prlevel, ctx)
       deallocate(cache_list)

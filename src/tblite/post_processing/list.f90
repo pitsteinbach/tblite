@@ -17,7 +17,9 @@ module tblite_post_processing_list
     use mctc_io, only : structure_type
     use tblite_integral_type, only : integral_type
     use tblite_results, only : results_type
-    use tblite_wiberg_bond_orders, only : new_wbo, wiberg_bond_orders
+    use tblite_post_processing_bond_orders, only : new_wbo, wiberg_bond_orders
+    use tblite_post_processing_molecular_moments, only : new_molecular_moments, molecular_moments
+    use tblite_param_molecular_moments, only : molecular_multipole_record
     implicit none
     private
 
@@ -155,13 +157,12 @@ pure function info(self, verbosity, indent) result(str)
    integer :: i
    character(len=*), parameter :: nl = new_line('a')
 
-   str = "Post processing:"// nl // nl
+   str = "Post processing:"// nl 
 
    do i = 1, self%n
        str = str // self%list(i)%pproc%info(verbosity, indent)
+       str = str // nl
    end do
-
-   str = str // nl
 
 end function info
 
@@ -170,18 +171,17 @@ subroutine new_post_processing_param(self, param)
     class(post_processing_type), allocatable, intent(inout) :: self
     type(post_processing_param_list) :: param
     integer :: i
-    !do i = 1, size(param%list)
-    !select type(par => param%list(i)%record)
-      !type is (xtbml_features_record)
-            !block 
-               !type(xtbml_type), allocatable :: tmp_ml
-               !allocate(tmp_ml)
-               !call new_xtbml_features(par, tmp_ml)
-               !call move_alloc(tmp_ml, self)
-               !print_csv_bool = .true.
-           !end block
-     !end select
-   !end do
+    do i = 1, size(param%list)
+    select type(par => param%list(i)%record)
+    type is (molecular_multipole_record)
+        block 
+            type(molecular_moments), allocatable :: tmp
+            allocate(tmp)
+            call new_molecular_moments(tmp, par)
+            call move_alloc(tmp, self)
+        end block
+    end select
+    end do
 end subroutine
  
 subroutine new_post_processing_cli(self, config, error)
@@ -217,34 +217,44 @@ subroutine new_post_processing_cli(self, config, error)
             call move_alloc(wbo_tmp, self)
             return
         end block
-     case default
-         block
-             type(toml_table), allocatable :: table
-             integer :: io, stat
-             type(toml_error), allocatable :: t_error
-             type(param_record) :: record
-             type(toml_table), pointer :: child
+        case("molmom")
+            block
+            type(molecular_moments), allocatable :: molmom_tmp
+            allocate(molmom_tmp)
+            call new_molecular_moments(molmom_tmp)
+            call move_alloc(molmom_tmp, self)
+            end block
+        case default
+        block
+        type(toml_table), allocatable :: table
+        integer :: io, stat
+        type(toml_error), allocatable :: t_error
+        type(param_record) :: record
+        type(toml_table), pointer :: child
  
-             open(file=config, newunit=io, status="old")
+        open(file=config, newunit=io, status="old")
              
-             call toml_parse(table, io, t_error)
-             close(io)
-             if (allocated(t_error)) then
-                 allocate(error)
-                 call move_alloc(t_error%message, error%message)
-                 return
-              end if
-             if (allocated(error)) then
-                 call fatal_error(error, "File name provided could not be parsed as a toml table")
-             end if
-             call get_value(table, "post-processing", child, requested=.false.)
-             if (associated(child)) then
-               call param%load(child, error)
-             end if
-         end block
-     end select
+        call toml_parse(table, io, t_error)
+        close(io)
+        if (allocated(t_error)) then
+            allocate(error)
+            call move_alloc(t_error%message, error%message)
+            return
+        end if
+        if (allocated(error)) then
+            call fatal_error(error, "File name provided could not be parsed as a toml table")
+        end if
+        call get_value(table, "post-processing", child, requested=.false.)
+        if (associated(child)) then
+            call param%load(child, error)
+        else
+            call fatal_error(error, "Could not find post-processing key in toml file.")
+        end if
+        call new_post_processing(self, param) 
+        end block
+        end select
      
-     call new_post_processing(self, param) 
+    
  end subroutine
 
 subroutine push(self, record)

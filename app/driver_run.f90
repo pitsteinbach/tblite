@@ -54,7 +54,7 @@ module tblite_driver_run
    real(wp), parameter :: jtoau = 1.0_wp / (codata%me*codata%c**2*codata%alpha**2)
    !> Convert V/Å = J/(C·Å) to atomic units
    real(wp), parameter :: vatoau = jtoau / (ctoau * aatoau)
-   character(len=:), allocatable :: wbo_label
+   character(len=:), allocatable :: wbo_label, molmom_label
 
 contains
 
@@ -67,7 +67,8 @@ subroutine run_main(config, error)
    character(len=:), allocatable :: method, filename
    integer :: unpaired, charge, stat, unit, nspin
    logical :: exist
-   real(wp) :: energy, dpmom(3), qpmom(6)
+   real(wp) :: energy
+   real(wp), allocatable :: dpmom(:), qpmom(:)
    real(wp), allocatable :: gradient(:, :), sigma(:, :)
    type(param_record) :: param
    type(context_type) :: ctx
@@ -75,7 +76,7 @@ subroutine run_main(config, error)
    type(wavefunction_type) :: wfn
    type(results_type) :: results
    class(post_processing_list), allocatable :: post_proc
-   class(post_processing_type), allocatable :: wbo_post_proc
+   class(post_processing_type), allocatable :: post_proc_tmp
 
    ctx%terminal = context_terminal(config%color)
    ctx%solver = lapack_solver(config%solver)
@@ -193,8 +194,14 @@ subroutine run_main(config, error)
 
    wbo_label = "wbo"
    allocate(post_proc)
-   call new_post_processing(wbo_post_proc, wbo_label, error)
-   call post_proc%push(wbo_post_proc)
+   call new_post_processing(post_proc_tmp, wbo_label, error)
+   call post_proc%push(post_proc_tmp)
+
+   if (config%verbosity > 2) then
+      molmom_label = "molmom"
+      call new_post_processing(post_proc_tmp, molmom_label, error)
+      call post_proc%push(post_proc_tmp)
+   end if
 
    if (allocated(config%post_processing)) then
          block
@@ -234,10 +241,9 @@ subroutine run_main(config, error)
 
    if (config%verbosity > 2) then
       call ascii_levels(ctx%unit, config%verbosity, wfn%homo, wfn%emo, wfn%focc, 7)
-
-      call get_molecular_dipole_moment(mol, wfn%qat(:, 1), wfn%dpat(:, :, 1), dpmom)
-      call get_molecular_quadrupole_moment(mol, wfn%qat(:, 1), wfn%dpat(:, :, 1), &
-         & wfn%qpat(:, :, 1), qpmom)
+      call post_proc%dict%get_entry("molecular-dipole", dpmom)
+      call post_proc%dict%get_entry("molecular-quadrupole", qpmom)
+      
       call ascii_dipole_moments(ctx%unit, 1, mol, wfn%dpat(:, :, 1), dpmom)
       call ascii_quadrupole_moments(ctx%unit, 1, mol, wfn%qpat(:, :, 1), qpmom)
    end if

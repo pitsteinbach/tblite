@@ -64,7 +64,7 @@ pure function info(self, verbosity, indent) result(str)
    character(len=:), allocatable :: str
 
    if (allocated(self%label)) then
-      str = self%label
+      str = indent // self%label
    else
       str = "Unknown"
    end if

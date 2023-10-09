@@ -1,4 +1,4 @@
-module tblite_wiberg_bond_orders
+module tblite_post_processing_bond_orders
     use mctc_env, only : wp
     use tblite_post_processing_type, only : post_processing_type
     use tblite_wavefunction_type, only : wavefunction_type, get_density_matrix
@@ -23,7 +23,6 @@ module tblite_wiberg_bond_orders
     type, extends(post_processing_type) :: wiberg_bond_orders
     contains
         procedure :: compute
-        procedure :: info
         procedure :: print_timer
     end type
 
@@ -34,9 +33,9 @@ contains
 subroutine new_wbo(new_wbo_type)
     type(wiberg_bond_orders), intent(inout) :: new_wbo_type
         new_wbo_type%label = label
-    end subroutine
+end subroutine
 
-    subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, dict)
+subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, dict)
         class(wiberg_bond_orders),intent(inout) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
@@ -122,25 +121,6 @@ subroutine get_mayer_bond_orders(bas, smat, pmat, mbo)
 
    call updown_to_magnet(mbo)
 end subroutine get_mayer_bond_orders
-
-pure function info(self, verbosity, indent) result(str)
-    !> Instance of the interaction container
-    class(wiberg_bond_orders), intent(in) :: self
-    !> Verbosity level
-    integer, intent(in) :: verbosity
-    !> Indentation level
-    character(len=*), intent(in) :: indent
-    !> Information on the container
-    character(len=:), allocatable :: str
-    character(len=*), parameter :: nl = new_line('a')
-    character(len=:), allocatable :: category_indent 
-    if (allocated(self%label)) then
-       str = self%label
-    else
-       str = "Unknown"
-    end if
-
-end function info
 
 subroutine print_timer(self, prlevel, ctx)
     !> Instance of the interaction container

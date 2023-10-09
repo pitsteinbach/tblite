@@ -23,7 +23,7 @@ module tblite_param_post_processing
    use mctc_io_symbols, only : to_number
    use tblite_param_serde, only : serde_record
    use tblite_toml, only : toml_table, get_value, set_value, add_table, toml_array, toml_key
-   !use tblite_param_xtbml_features, only : xtbml_features_record
+   use tblite_param_molecular_moments, only : molecular_multipole_record
    implicit none
    private
    
@@ -116,8 +116,6 @@ subroutine dump_to_toml(self, table, error)
 
    do ii = 1, size(self%list)
       select type(rec => self%list(ii)%record)
-      !type is (xtbml_features_record)
-      !   call rec%dump(child, error)
       class default
          call rec%dump(child, error)
       end select
@@ -126,7 +124,7 @@ subroutine dump_to_toml(self, table, error)
    if (allocated(error)) return
 end subroutine dump_to_toml
 
-   !> Deserialize records from a table by iterating over all entires
+   !> Deserialize records from a table by iterating over all entries
 subroutine load_from_toml(self, table, error)
    !> List of all element records
    class(post_processing_param_list), intent(inout) :: self
@@ -142,16 +140,16 @@ subroutine load_from_toml(self, table, error)
    call table%get_keys(list)
 
    do ii = 1, size(list)
-     key = trim(adjustl(list(ii)%key))
-     select case(key)
-      !case("xtbml")
-      !   block 
-      !      type(xtbml_features_record), allocatable :: tmp_record
-      !      class(serde_record), allocatable :: cont
-      !      allocate(tmp_record)
-      !      call move_alloc(tmp_record, cont)
-      !      call self%push(cont)
-      !   end block
+      key = trim(adjustl(list(ii)%key))
+      select case(key)
+      case("molecular-multipole")
+         block 
+            type(molecular_multipole_record), allocatable :: tmp_record
+            class(serde_record), allocatable :: cont
+            allocate(tmp_record)
+            call move_alloc(tmp_record, cont)
+            call self%push(cont)
+         end block
       case default
          return
       end select

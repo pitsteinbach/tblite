@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
-#subdir('xtb-ml')
+set(dir "${CMAKE_CURRENT_SOURCE_DIR}")
 
-srcs += files(
-  'list.f90',
-  'molmom.f90',
-  'type.f90',
-  'wbo.f90'
+list(
+  APPEND srcs
+  "${dir}/molmom.f90"
 )
+
+set(srcs "${srcs}" PARENT_SCOPE)
