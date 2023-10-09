@@ -33,6 +33,10 @@ elif fc_id == 'intel'
     '-traceback',
     language: 'fortran',
   )
+    add_project_link_arguments(
+    '-Wl,--allow-multiple-definition',
+    language: 'fortran',
+  )
 elif fc_id == 'pgi' or fc_id == 'nvidia_hpc'
   add_project_arguments(
     '-Mbackslash',

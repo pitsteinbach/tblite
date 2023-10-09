@@ -29,10 +29,11 @@ except ModuleNotFoundError:
 
 from typing import List, Optional
 
-from .interface import Calculator
 import ase.calculators.calculator
 from ase.atoms import Atoms
-from ase.units import Hartree, Bohr, kB
+from ase.units import Bohr, Hartree, kB
+
+from .interface import Calculator
 
 
 class TBLite(ase.calculators.calculator.Calculator):
@@ -170,6 +171,9 @@ class TBLite(ase.calculators.calculator.Calculator):
             if "max_iterations" in changed_parameters:
                 self._xtb.set("max-iter", self.parameters.max_iterations)
 
+            if "charge" in changed_parameters:
+                self._xtb.set("charge", self.parameters.charge)
+
         return changed_parameters
 
     def reset(self) -> None:
@@ -217,8 +221,14 @@ class TBLite(ase.calculators.calculator.Calculator):
         try:
             _cell = self.atoms.cell
             _periodic = self.atoms.pbc
-            _charge = self.atoms.get_initial_charges().sum()
-            _uhf = int(self.atoms.get_initial_magnetic_moments().sum().round())
+            if hasattr(self.parameters, "charge"):
+                _charge = self.parameters.charge
+            else:
+                _charge = self.atoms.get_initial_charges().sum()
+            if hasattr(self.parameters, "uhf"):
+                _uhf = self.parameters.uhf
+            else:
+                _uhf = int(self.atoms.get_initial_magnetic_moments().sum().round())
 
             calc = Calculator(
                 self.parameters.method,
@@ -298,6 +308,7 @@ class TBLite(ase.calculators.calculator.Calculator):
         self.results["forces"] = -self._res.get("gradient") * Hartree / Bohr
         self.results["charges"] = self._res.get("charges")
         self.results["dipole"] = self._res.get("dipole") * Bohr
+        self.results["bond-orders"] = self._res.get("bond-orders")
         # stress tensor is only returned for periodic systems
         if self.atoms.pbc.any():
             _stress = self._res.get("virial") * Hartree / self.atoms.get_volume()

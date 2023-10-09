@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
+#subdir('post_process')
 
 srcs += files(
   'charge.f90',
@@ -22,6 +23,7 @@ srcs += files(
   'hamiltonian.f90',
   'mask.f90',
   'multipole.f90',
+  'post_processing.f90',
   'repulsion.f90',
   'serde.f90',
   'thirdorder.f90',

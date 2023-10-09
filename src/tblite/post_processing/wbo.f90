@@ -1,7 +1,7 @@
 module tblite_wiberg_bond_orders
     use mctc_env, only : wp
     use tblite_post_processing_type, only : post_processing_type
-    use tblite_wavefunction_type, only : wavefunction_type
+    use tblite_wavefunction_type, only : wavefunction_type, get_density_matrix
     use mctc_io, only : structure_type
     use tblite_basis_type, only : basis_type
     use tblite_results, only : results_type
@@ -51,15 +51,45 @@ subroutine new_wbo(new_wbo_type)
         type(container_cache), intent(inout) :: cache_list(:)
         type(double_dictionary_type), intent(inout) :: dict
         real(kind=wp), allocatable :: wbo(:, :, :)
-        integer :: prlevel, nspin
+        real(kind=wp), allocatable :: focc_(:, :)
+        integer :: prlevel, nspin, i, j
+        real(kind=wp) :: nel_
+        real(wp), allocatable :: pmat(:, :, :)
 
         call timer%push("total")
         nspin = size(wfn%density, dim=3)
-        allocate(wbo(mol%nat, mol%nat, nspin), source=0.0_wp)
-        call get_mayer_bond_orders(calc%bas, integrals%overlap, wfn%density, wbo)
+        write(*,*) "Spin", nspin
+        write(*,*) wfn%nel
+        
+        if ((nspin == 1) .and. (wfn%nel(1) /= wfn%nel(2))) then
+            allocate(wbo(mol%nat, mol%nat, 2), source=0.0_wp)
+            allocate(focc_(calc%bas%nao, 2), source=0.0_wp)
+            allocate(pmat(calc%bas%nao, calc%bas%nao, 2))
+            do j = 1,2
+                nel_ = wfn%nel(j)
+                do i = 1, size(wfn%focc)
+                    if (nel_ > 1.0_wp) then
+                        focc_(i,j) = 1.0_wp
+                        nel_ = nel_ - 1.0_wp
+                    else
+                        focc_(i,j) = nel_
+                        exit
+                    end if
+                end do
+            end do
+            write(*,*) focc_
+            do j = 1, 2
+                call get_density_matrix(focc_(:, j), wfn%coeff(:, :, nspin), pmat(:, :, j))
+            end do
+            call get_mayer_bond_orders(calc%bas, integrals%overlap, pmat, wbo)
+        else
+            allocate(wbo(mol%nat, mol%nat, nspin), source=0.0_wp)
+            call get_mayer_bond_orders(calc%bas, integrals%overlap, wfn%density, wbo)
+        end if
         
         call dict%add_entry("wbo", wbo(:, :, :))
-          
+        write(*,*) calc%bas%nao
+        write(*,*) wbo  
         call timer%pop()
 end subroutine
 

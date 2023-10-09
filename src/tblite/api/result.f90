@@ -25,6 +25,7 @@ module tblite_api_result
    use tblite_api_version, only : namespace
    use tblite_results, only : results_type
    use tblite_wavefunction_type, only : wavefunction_type
+   use tblite_api_double_dictionary, only : vp_double_dictionary
    implicit none
    private
 
@@ -36,7 +37,7 @@ module tblite_api_result
       & get_result_orbital_occupations_api, get_result_orbital_coefficients_api, &
       & get_result_energies_api, get_result_density_matrix_api, &
       & get_result_overlap_matrix_api, get_result_hamiltonian_matrix_api, &
-      & get_result_bond_orders_api
+      & get_result_bond_orders_api, get_post_processing_dict_api
 
 
    !> Void pointer holding results of a calculation
@@ -58,7 +59,7 @@ module tblite_api_result
    end type vp_result
 
 
-   logical, parameter :: debug = .false.
+   logical, parameter :: debug = .true.
 
 
 contains
@@ -507,6 +508,7 @@ subroutine get_result_bond_orders_api(verror, vres, mbo) &
    type(c_ptr), value :: vres
    type(vp_result), pointer :: res
    real(c_double), intent(out) :: mbo(*)
+   real(kind=wp), allocatable :: mbo_f(:, :, :)
    logical :: ok
 
    if (debug) print '("[Info]", 1x, a)', "get_result_bond_orders"
@@ -519,15 +521,41 @@ subroutine get_result_bond_orders_api(verror, vres, mbo) &
       return
    end if
 
-   if (.not.allocated(res%results%bond_orders)) then
-      call fatal_error(error%ptr, "Result does not contain bond orders")
-      return
-   end if
+   call res%results%dict%get_entry("wbo", mbo_f)
 
-   mbo(:size(res%results%bond_orders)) = &
-      & reshape(res%results%bond_orders, [size(res%results%bond_orders)])
+   if (.not.allocated(mbo_f)) then
+      call fatal_error(error%ptr, "Could not find bond orders in results dictionary")
+      return
+   end if 
+
+   mbo(:size(mbo_f)) = &
+      & reshape(mbo_f, [size(mbo_f)])
 end subroutine get_result_bond_orders_api
 
+function get_post_processing_dict_api(verror, vres) result(vdict) &
+   & bind(C, name=namespace//"get_post_processing_dict")
+type(c_ptr), value :: verror
+type(vp_error), pointer :: error
+type(c_ptr), value :: vres
+type(vp_result), pointer :: res
+type(c_ptr) :: vdict
+logical :: ok
+type(vp_double_dictionary), pointer :: dict
+
+if (debug) print '("[Info]", 1x, a)', "get_result_dict"
+
+call get_result(verror, vres, error, res, ok)
+if (.not.ok) return
+
+if (.not.allocated(res%results)) then
+   call fatal_error(error%ptr, "Result does not contain bond orders")
+   return
+end if
+allocate(dict)
+dict%ptr = res%results%dict
+
+vdict = c_loc(dict)
+end function get_post_processing_dict_api
 
 subroutine get_result(verror, vres, error, res, ok)
    type(c_ptr), intent(in) :: verror

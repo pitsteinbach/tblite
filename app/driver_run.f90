@@ -40,6 +40,7 @@ module tblite_driver_run
    use tblite_xtb_gfn1, only : new_gfn1_calculator, export_gfn1_param
    use tblite_xtb_ipea1, only : new_ipea1_calculator, export_ipea1_param
    use tblite_xtb_singlepoint, only : xtb_singlepoint
+   use tblite_post_processing_list, only : new_post_processing, post_processing_type, post_processing_list
    implicit none
    private
 
@@ -53,6 +54,7 @@ module tblite_driver_run
    real(wp), parameter :: jtoau = 1.0_wp / (codata%me*codata%c**2*codata%alpha**2)
    !> Convert V/Å = J/(C·Å) to atomic units
    real(wp), parameter :: vatoau = jtoau / (ctoau * aatoau)
+   character(len=:), allocatable :: wbo_label
 
 contains
 
@@ -72,6 +74,8 @@ subroutine run_main(config, error)
    type(xtb_calculator) :: calc
    type(wavefunction_type) :: wfn
    type(results_type) :: results
+   class(post_processing_list), allocatable :: post_proc
+   class(post_processing_type), allocatable :: wbo_post_proc
 
    ctx%terminal = context_terminal(config%color)
    ctx%solver = lapack_solver(config%solver)
@@ -187,13 +191,38 @@ subroutine run_main(config, error)
       end block
    end if
 
+   wbo_label = "wbo"
+   allocate(post_proc)
+   call new_post_processing(wbo_post_proc, wbo_label, error)
+   call post_proc%push(wbo_post_proc)
+
+   if (allocated(config%post_processing)) then
+         block
+            class(post_processing_type), allocatable :: tmp_post_proc
+            call new_post_processing(tmp_post_proc, config%post_processing, error)
+            call post_proc%push(tmp_post_proc)
+         end block
+   end if
+
+   if (allocated(param%post_proc)) then
+      block
+         class(post_processing_type), allocatable :: tmp_post_proc
+         call new_post_processing(tmp_post_proc, param%post_proc)
+         call post_proc%push(tmp_post_proc)
+      end block
+   end if
+
    if (config%verbosity > 0) then
       call ctx%message(calc%info(config%verbosity, " | "))
       call ctx%message("")
    end if
-
-   call xtb_singlepoint(ctx, mol, calc, wfn, config%accuracy, energy, gradient, sigma, &
-      & config%verbosity, results)
+   if (allocated(post_proc)) then
+      call xtb_singlepoint(ctx, mol, calc, wfn, config%accuracy, energy, gradient, sigma, &
+         & config%verbosity, results, post_proc)
+   else
+      call xtb_singlepoint(ctx, mol, calc, wfn, config%accuracy, energy, gradient, sigma, &
+         & config%verbosity, results)
+   end if
    if (ctx%failed()) then
       call fatal(ctx, "Singlepoint calculation failed")
       do while(ctx%failed())

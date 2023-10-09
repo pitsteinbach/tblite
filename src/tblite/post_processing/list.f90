@@ -1,7 +1,7 @@
 module tblite_post_processing_list
     use mctc_env, only : wp, error_type, fatal_error
-    use tblite_xtbml_features, only : xtbml_type, new_xtbml_features
-    use tblite_param_xtbml_features, only : xtbml_features_record
+    !use tblite_xtbml_features, only : xtbml_type, new_xtbml_features
+    !use tblite_param_xtbml_features, only : xtbml_features_record
     use tblite_post_processing_type, only : post_processing_type
     use tblite_param_post_processing, only : post_processing_param_list
     use tblite_toml, only : toml_error, toml_parse, toml_table, get_value
@@ -66,7 +66,7 @@ subroutine pack_res(self, mol, res)
     real(wp), allocatable :: tmp_array(:)
     character(len=:), allocatable :: tmp_label
     
-    allocate(res%dict)
+    !allocate(res%dict)
     res%dict = self%dict
 end subroutine
 
@@ -170,18 +170,18 @@ subroutine new_post_processing_param(self, param)
     class(post_processing_type), allocatable, intent(inout) :: self
     type(post_processing_param_list) :: param
     integer :: i
-    do i = 1, size(param%list)
-    select type(par => param%list(i)%record)
-      type is (xtbml_features_record)
-            block 
-               type(xtbml_type), allocatable :: tmp_ml
-               allocate(tmp_ml)
-               call new_xtbml_features(par, tmp_ml)
-               call move_alloc(tmp_ml, self)
-               print_csv_bool = .true.
-           end block
-     end select
-   end do
+    !do i = 1, size(param%list)
+    !select type(par => param%list(i)%record)
+      !type is (xtbml_features_record)
+            !block 
+               !type(xtbml_type), allocatable :: tmp_ml
+               !allocate(tmp_ml)
+               !call new_xtbml_features(par, tmp_ml)
+               !call move_alloc(tmp_ml, self)
+               !print_csv_bool = .true.
+           !end block
+     !end select
+   !end do
 end subroutine
  
 subroutine new_post_processing_cli(self, config, error)
@@ -191,24 +191,24 @@ subroutine new_post_processing_cli(self, config, error)
      type(post_processing_param_list), allocatable :: param
      allocate(param)
      select case(config)
-     case("xtbml")
-         block 
-             type(xtbml_features_record), allocatable :: ml_param
-             class(serde_record), allocatable :: cont
-             allocate(ml_param)
-             call ml_param%populate_default_param(.false.)
-             call move_alloc(ml_param, cont)
-             call param%push(cont)
-         end block
-     case("xtbml_xyz")
-       block 
-         type(xtbml_features_record), allocatable :: ml_param
-         class(serde_record), allocatable :: cont 
-         allocate(ml_param)
-         call ml_param%populate_default_param(.true.)
-         call move_alloc(ml_param, cont)
-         call param%push(cont) 
-       end block
+     !case("xtbml")
+         !block 
+             !type(xtbml_features_record), allocatable :: ml_param
+             !class(serde_record), allocatable :: cont
+             !allocate(ml_param)
+             !call ml_param%populate_default_param(.false.)
+             !call move_alloc(ml_param, cont)
+             !call param%push(cont)
+         !end block
+     !case("xtbml_xyz")
+       !block 
+         !type(xtbml_features_record), allocatable :: ml_param
+         !class(serde_record), allocatable :: cont 
+         !allocate(ml_param)
+         !call ml_param%populate_default_param(.true.)
+         !call move_alloc(ml_param, cont)
+         !call param%push(cont) 
+       !end block
        case("wbo")
         block
             type(wiberg_bond_orders), allocatable :: wbo_tmp
@@ -221,7 +221,6 @@ subroutine new_post_processing_cli(self, config, error)
          block
              type(toml_table), allocatable :: table
              integer :: io, stat
-             type(xtbml_features_record), allocatable :: ml_param 
              type(toml_error), allocatable :: t_error
              type(param_record) :: record
              type(toml_table), pointer :: child
