@@ -58,8 +58,6 @@ subroutine new_wbo(new_wbo_type)
 
         call timer%push("total")
         nspin = size(wfn%density, dim=3)
-        write(*,*) "Spin", nspin
-        write(*,*) wfn%nel
         
         if ((nspin == 1) .and. (wfn%nel(1) /= wfn%nel(2))) then
             allocate(wbo(mol%nat, mol%nat, 2), source=0.0_wp)
@@ -77,7 +75,6 @@ subroutine new_wbo(new_wbo_type)
                     end if
                 end do
             end do
-            write(*,*) focc_
             do j = 1, 2
                 call get_density_matrix(focc_(:, j), wfn%coeff(:, :, nspin), pmat(:, :, j))
             end do
@@ -88,8 +85,6 @@ subroutine new_wbo(new_wbo_type)
         end if
         
         call dict%add_entry("wbo", wbo(:, :, :))
-        write(*,*) calc%bas%nao
-        write(*,*) wbo  
         call timer%pop()
 end subroutine
 

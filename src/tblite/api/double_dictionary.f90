@@ -79,14 +79,12 @@ subroutine get_array_size_index_api(vdict, index, dim1, dim2, dim3) &
     
     call dict%ptr%get_entry(index, array3)
     if (allocated(array3)) then
-        write(*,*) size(array3)
         allocate(dict%array(size(array3)))
         dict%array(:size(array3)) = &
             & reshape(array3, [size(array3)])
         dim1 = size(array3, dim=1)
         dim2 = size(array3, dim=2)
         dim3 = size(array3, dim=3)
-        !write(*,*) array3
     end if
 
     

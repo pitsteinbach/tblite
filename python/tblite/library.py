@@ -250,12 +250,8 @@ def get_charges(res):
 
 def get_bond_orders(res):
     """Retrieve Wiberg / Mayer bond orders from result container"""
-    _natoms = ffi.new("int *")
-    error_check(lib.tblite_get_result_number_of_atoms)(res, _natoms)
-    _bond_orders = np.zeros((_natoms[0], _natoms[0]))
-    error_check(lib.tblite_get_result_bond_orders)(
-        res, ffi.cast("double*", _bond_orders.ctypes.data)
-    )
+    _dict = get_post_processing_dict(res=res)
+    _bond_orders = _dict['wbo']
     return _bond_orders
 
 
@@ -385,7 +381,6 @@ def get_post_processing_dict(res):
     for i in range(1,_nentries+1):
         _index = ffi.new("const int*", i)
 
-        print(_index[0])
         _dim1 = ffi.new("int*")
         _dim2 = ffi.new("int*")
         _dim3 = ffi.new("int*")
@@ -397,7 +392,6 @@ def get_post_processing_dict(res):
                 _array = np.zeros((_dim1[0], _dim2[0]))
         else:
             _array = np.zeros((_dim1[0], _dim2[0], _dim3[0]))
-        print(_dim1[0], _dim2[0], _dim3[0])
         lib.tblite_get_array_entry_index(_dict, _index, ffi.cast("double*", _array.ctypes.data))
         _message = ffi.new("char[]", 512)
         lib.tblite_get_label_entry_index(_dict, _index, _message)

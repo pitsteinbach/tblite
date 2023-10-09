@@ -558,7 +558,6 @@ subroutine get_singlepoint_w_post_api(vctx, vmol, vcalc, vres, vpost_proc) &
       return
    end if
    call c_f_pointer(vpost_proc, post_proc)
-   if (.not. associated(post_proc)) write(*,*) "Error!"
 
    call xtb_singlepoint(ctx%ptr, mol%ptr, calc%ptr, res%wfn, calc%accuracy, res%energy, &
    & gradient=res%gradient, sigma=res%sigma, results=res%results, post_process=post_proc%ptr)
