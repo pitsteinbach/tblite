@@ -20,6 +20,7 @@
 !> High-level interface to level 3 basic linear algebra subprogram operations
 module tblite_blas_level3
    use mctc_env, only : sp, dp
+   use iso_c_binding
    implicit none
    private
 

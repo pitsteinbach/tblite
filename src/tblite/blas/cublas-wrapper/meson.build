@@ -13,12 +13,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
-if get_option('gpu')
-  subdir('cublas-wrapper')
-endif
 
 srcs += files(
   'level1.f90',
-  'level2.f90',
   'level3.f90',
+  'hadamard.cu',
+  'gpu_utils.f90',
 )
