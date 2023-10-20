@@ -26,6 +26,7 @@ subdir('coulomb')
 subdir('ceh')
 subdir('data')
 subdir('disp')
+subdir('exchange')
 subdir('external')
 subdir('fit')
 subdir('integral')
@@ -52,6 +53,7 @@ srcs += files(
   'data.f90',
   'double_dictionary.f90',
   'disp.f90',
+  'exchange.f90',
   'lapack.f90',
   'ncoord.f90',
   'os.F90',
