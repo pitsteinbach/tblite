@@ -283,10 +283,9 @@ function get_mixer_dimension(mol, bas, info) result(ndim)
 
    select case(info%density)
    case(orbital_resolved)
-      ndim = ndim + bas%nao*bas%nao
+      ndim = bas%nao*bas%nao
    end select
 
-   write(*,*) ndim
 end function get_mixer_dimension
 
 subroutine set_mixer(mixer, wfn, info)
@@ -375,7 +374,6 @@ subroutine get_mixer(mixer, bas, wfn, info)
    select case(info%density)
    case(orbital_resolved)
       call mixer%get(wfn%density(:,:,1))
-      write(*,*) wfn%density(1,1,1)
    end select
 end subroutine get_mixer
 

@@ -7,6 +7,7 @@ module tblite_mulliken_kfock
    use tblite_container_cache, only : container_cache
    use tblite_exchange_cache, only : exchange_cache
    use tblite_basis_type, only : basis_type
+   use mullk_fockbuild, only : compute_gamma_fr, compute_gamma_rs, KFockSymSQM
    implicit none
    private
    logical :: allowincr = .true.
@@ -65,99 +66,10 @@ module tblite_mulliken_kfock
       module procedure :: new_range_separated_mulliken_k_fock
    end interface
 
-   interface  KFockSymSQM
-      subroutine KFockSymSQM(allowsingle,incremental,nao,nat,nsh,aonum,sh2at,&
-         temp,density,overlap,fock)
-      import :: dp
-      !> do single precision using integers, incremental Fock Build
-      integer,intent(in) :: allowsingle, incremental
-      !> Number of AOS
-      integer,intent(in) :: nao
-      !> Number of atoms
-      integer,intent(in) :: nat
-      !> Number of shells
-      integer,intent(in) :: nsh
-      !> Number of AOs in shell
-      integer,intent(in) :: aonum(nsh)
-      !> Convert from sh to at
-      integer,intent(in) :: sh2at(nsh)
-      !> density matrix
-      real(kind=dp),intent(in) :: density(nao,nao)
-      !> Overlap
-      real(kind=dp),intent(in) :: overlap(nao,nao)
-      !> Fock Matrix
-      real(kind=dp),intent(inout) :: fock(nao,nao)
-      real(kind=dp), intent(inout) :: temp(nao,nao)
-      end subroutine
-   end interface
 
    interface gamma
-      subroutine compute_gamma_rs(nao,nat,nsh,aonum,sh2at,average,expsmooth,xyz,hardness,&
-         & frscale, omega, lrscale, temp)
-      import :: dp
-      !> Number of AOS
-      integer,intent(in) :: nao
-      !> Number of atoms
-      integer,intent(in) :: nat
-      !> Number of shells
-      integer,intent(in) :: nsh
-      !> Number of AOs in shell
-      integer,intent(in) :: aonum(nsh)
-      !> Convert from sh to at
-      integer,intent(in) :: sh2at(nsh)
-      !> Averaging scheme for hardness:
-      !> 0 = arith.
-      !> 1 = geom.
-      !> 2 = arith.
-      integer,intent(in) :: average
-      !> Smoothening exponent
-      !> 1 =  Mataga
-      !> 2 = Klopman-type
-      integer,intent(in) :: expsmooth
-      !> Cartesian coordinates
-      real(kind=dp),intent(in) :: xyz(3,nat)
-      !> Chemical Hardness values
-      real(kind=dp),intent(in) :: hardness(nsh)
-      !>full-range K scale
-      real(kind=dp),intent(in) :: frscale
-      !> omega value for range seperated
-      real(kind=dp):: omega
-      !> longrange scale for range seperated functionals
-      real(kind=dp) :: lrscale
-
-      real(kind=dp), intent(out) :: temp(nao,nao)
-      end subroutine
-      subroutine compute_gamma_fr(nao,nat,nsh,aonum,sh2at,average,expsmooth,xyz,hardness,&
-         & frscale, temp)
-      import :: dp
-      !> Number of AOS
-      integer,intent(in) :: nao
-      !> Number of atoms
-      integer,intent(in) :: nat
-      !> Number of shells
-      integer,intent(in) :: nsh
-      !> Number of AOs in shell
-      integer,intent(in) :: aonum(nsh)
-      !> Convert from sh to at
-      integer,intent(in) :: sh2at(nsh)
-      !> Averaging scheme for hardness:
-      !> 0 = arith.
-      !> 1 = geom.
-      !> 2 = arith.
-      integer,intent(in) :: average
-      !> Smoothening exponent
-      !> 1 =  Mataga
-      !> 2 = Klopman-type
-      integer,intent(in) :: expsmooth
-      !> Cartesian coordinates
-      real(kind=dp),intent(in) :: xyz(3,nat)
-      !> Chemical Hardness values
-      real(kind=dp),intent(in) :: hardness(nsh)
-      !>full-range K scale
-      real(kind=dp),intent(in) :: frscale
-
-      real(kind=dp), intent(out) :: temp(nao,nao)
-      end subroutine
+         procedure :: compute_gamma_fr
+         procedure :: compute_gamma_rs
    end interface gamma
 
 contains
@@ -392,7 +304,6 @@ subroutine get_energy(self, mol, cache, wfn ,energies)
 end subroutine get_energy
 
 subroutine get_gradient_w_overlap(self, mol, cache, wfn, gradient, sigma, overlap)
-   use tblite_blas, only : gemm
    !> Instance of the exchange container
    class(mulliken_kfock_type), intent(in) :: self
    !> Molecular structure data

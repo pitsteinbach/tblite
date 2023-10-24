@@ -27,21 +27,11 @@ project(
 )
 install = not (meson.is_subproject() and get_option('default_library') == 'static')
 has_cc = add_languages('c', required: get_option('api') or get_option('python'), native: false)
-has_cuda = add_languages('cuda', required: get_option('gpu'), native: false)
-if get_option('gpu')
-cuda = import('unstable-cuda')
-endif
 # General configuration information
 lib_deps = []
 inc_dirs = []
 subdir('config')
 
-if get_option('gpu')
-  lib_deps += dependency('cuda', version : '>=10', modules : ['cublas'], method: 'cmake')
-  #add_project_link_arguments('-lcudart','lcublas', 'lstdc++')
-  #gpu_arch = get_option('gpu_arch')
-
-endif
 # Collect source of the project
 srcs = []
 subdir('src')
