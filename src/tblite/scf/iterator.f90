@@ -38,7 +38,8 @@ module tblite_scf_iterator
    implicit none
    private
 
-   public :: next_scf, get_mixer_dimension, get_density, get_qat_from_qsh
+   public :: next_scf, get_mixer_dimension, get_density
+   public :: get_qat_from_qsh, get_electronic_energy, reduce
 
 contains
 
