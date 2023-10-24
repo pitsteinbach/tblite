@@ -1,0 +1,4 @@
+[wrap-git]
+directory = mullk
+url = git@git.rwth-aachen.de:bannwarthlab/mullikenkfock_gpu.git
+revision = HEAD
