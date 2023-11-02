@@ -374,7 +374,6 @@ def get_post_processing_dict(res):
     """Retrieve the dictionary containing all post processing results"""
     _dict = ffi.gc(error_check(lib.tblite_get_post_processing_dict)(res), _delete_double_dictionary)
     _nentries = error_check(lib.tblite_get_n_entries_dict)(_dict)
-    print(_nentries)
     _dict_py = dict()
     for i in range(1,_nentries+1):
         _index = ffi.new("const int*", i)
@@ -395,7 +394,6 @@ def get_post_processing_dict(res):
         error_check(lib.tblite_get_label_entry_index)(_dict, _index, _message, ffi.NULL)
         label = ffi.string(_message).decode()
         _dict_py[label] = _array
-        print(_dict_py)
     return _dict_py
         
 def get_calculator_angular_momenta(ctx, calc):
@@ -452,16 +450,24 @@ def new_electric_field(ctx, mol, calc, efield):
     return lib.tblite_new_electric_field(efield)
 
 @context_check
-def new_alpb_solvation(ctx, mol, calc, solventstr):
+def new_alpb_solvation(ctx, mol, calc, solvent):
     "Create new ALPB solvation model object"
-    _string = ffi.new("char[]", solventstr.encode("ascii"))
-    return lib.tblite_new_alpb_solvation(ctx, mol, calc, _string)
+    if isinstance(solvent, str):
+        _string = ffi.new("char[]", solvent.encode("ascii"))
+        return lib.tblite_new_alpb_solvation_str(ctx, mol, calc, _string)
+    if isinstance(solvent, float) or isinstance(solvent, int):
+        _eps = float(solvent)
+        return lib.tblite_new_alpb_solvation_dbl(ctx, mol, calc, _eps)
 
 @context_check
-def new_cpcm_solvation(ctx, mol, calc, solventstr):
+def new_cpcm_solvation(ctx, mol, calc, solvent):
     "Create new ALPB solvation model object"
-    _string = ffi.new("char[]", solventstr.encode("ascii"))
-    return lib.tblite_new_cpcm_solvation(ctx, mol, calc, _string)    
+    if isinstance(solvent, str):
+        _string = ffi.new("char[]", solvent.encode("ascii"))
+        return lib.tblite_new_cpcm_solvation_str(ctx, mol, calc, _string)
+    if isinstance(solvent, float) or isinstance(solvent, int):
+        _eps = float(solvent)
+        return lib.tblite_new_cpcm_solvation_dbl(ctx, mol, calc, _eps)       
 
 @context_check
 def new_spin_polarization(ctx, mol, calc, wscale: float = 1.0):

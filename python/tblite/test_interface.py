@@ -426,7 +426,7 @@ def test_solvation_models():
 
     calc = Calculator("GFN2-xTB", numbers, positions)
     calc.set("accuracy", 1.0)
-    calc.add("cpcm-solvation", "7.0")
+    calc.add("cpcm-solvation", 7.0)
 
     energy = calc.singlepoint().get("energy")
 
@@ -441,7 +441,7 @@ def test_solvation_models():
 
     calc = Calculator("GFN2-xTB", numbers, positions)
     calc.set("accuracy", 1.0)
-    calc.add("alpb-solvation", "7.0")
+    calc.add("alpb-solvation", 7.0)
 
     energy = calc.singlepoint().get("energy")
 
