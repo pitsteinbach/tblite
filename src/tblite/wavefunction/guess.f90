@@ -20,16 +20,14 @@
 !> Implementation of the guess wavefunctions
 module tblite_wavefunction_guess
    use mctc_env, only : wp
-   use mctc_io, only : structure_type
+   use mctc_io, only : structure_type, new
    use tblite_disp_d4, only : get_eeq_charges
-   use tblite_wavefunction_type, only : wavefunction_type
+   use tblite_wavefunction_type, only : wavefunction_type, new_wavefunction
    use tblite_xtb_h0, only : get_occupation
    use tblite_xtb_calculator, only : xtb_calculator
-   implicit none
    private
 
    public :: sad_guess, eeq_guess, shell_partition
-
 contains
 
 subroutine sad_guess(mol, calc, wfn)

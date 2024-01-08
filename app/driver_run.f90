@@ -35,6 +35,7 @@ module tblite_driver_run
    use tblite_solvation, only : new_solvation, solvation_type
    use tblite_wavefunction, only : wavefunction_type, new_wavefunction, &
       & sad_guess, eeq_guess, shell_partition
+   use tblite_wavefunction_guess_sadno, only : sadno_guess
    use tblite_xtb_calculator, only : xtb_calculator, new_xtb_calculator
    use tblite_xtb_gfn2, only : new_gfn2_calculator, export_gfn2_param
    use tblite_xtb_gfn1, only : new_gfn1_calculator, export_gfn1_param
@@ -197,6 +198,12 @@ subroutine run_main(config, error)
       end if
       wfn%qat(:, 1) = wfn_ceh%qat(:, 1)
       call shell_partition(mol, calc, wfn)
+   case("sadno")
+      if (allocated(config%param)) then
+         call sadno_guess(mol, calc, wfn, param=param)
+      else
+         call sadno_guess(mol, calc, wfn, method=method)
+      end if
    end select
    if (allocated(error)) return
 

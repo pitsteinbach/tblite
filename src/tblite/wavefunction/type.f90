@@ -86,8 +86,8 @@ subroutine new_wavefunction(self, nat, nsh, nao, nspin, kt)
    allocate(self%n0at(nat))
    allocate(self%n0sh(nsh))
 
-   allocate(self%density(nao, nao, nspin))
-   allocate(self%coeff(nao, nao, nspin))
+   allocate(self%density(nao, nao, nspin), source=0.0_wp)
+   allocate(self%coeff(nao, nao, nspin), source=0.0_wp)
    allocate(self%emo(nao, nspin))
    allocate(self%focc(nao, nspin))
 
