@@ -14,11 +14,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
-srcs += files(
-  'exp.f90',
-  'gfn.f90',
-  'ceh_std.f90',
-  'ceh_en.f90',
-  'type.f90',
-  'xtbml.f90',
-)
+
+class TBLiteRuntimeError(RuntimeError):
+    """Raised when an error occurs during TBLite runtime."""
+
+    pass
+
+
+class TBLiteTypeError(TypeError):
+    """Raised when an error occurs during TBLite input processing."""
+
+    pass
+
+
+class TBLiteValueError(ValueError):
+    """Raised when an error occurs during TBLite input processing."""
+
+    pass

@@ -94,18 +94,20 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
         call cont%es3%update(mol, cache)
         call cont%es3%get_energy(mol, cache, wfn, tmp_energy)
     end if
+    tot_energy = tot_energy + tmp_energy
     call self%dict%add_entry("E_ies_ixc", tmp_energy)
     if (allocated(cont%aes2)) then
         tmp_energy = 0.0_wp
         call cont%aes2%get_AXC(mol, wfn, tmp_energy)
         call self%dict%add_entry("E_AXC", tmp_energy)
+        tot_energy = tot_energy + tmp_energy
         tmp_energy = 0.0_wp 
         call cont%aes2%get_energy_aes_xtb(mol, cache, wfn, tmp_energy)
-        call self%dict%add_entry("E_AES", tmp_energy) 
+        call self%dict%add_entry("E_AES", tmp_energy)
+        tot_energy = tot_energy + tmp_energy
     end if
     end associate
   end if
-  tot_energy = tot_energy + tmp_energy
   tmp_energy = 0.0_wp
   if (allocated(calc%halogen)) then 
     cache = cache_list(3)

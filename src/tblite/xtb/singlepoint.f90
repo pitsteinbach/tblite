@@ -26,7 +26,7 @@ module tblite_xtb_singlepoint
    use tblite_adjlist, only : adjacency_list, new_adjacency_list
    use tblite_basis_type, only : get_cutoff, basis_type
    use tblite_blas, only : gemv
-   use tblite_container, only : container_cache
+   use tblite_container, only : container_cache, container_list, container_type
    use tblite_context, only : context_type, escape
    use tblite_cutoff, only : get_lattice_points
    use tblite_integral_type, only : integral_type, new_integral
@@ -280,6 +280,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
    call timer%pop
 
+   
+
    if (prlevel > 1) then
       call ctx%message(label_electronic // format_string(sum(eelec), real_format) // " Eh")
       call ctx%message(label_total // format_string(sum(energies), real_format) // " Eh")
@@ -352,6 +354,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       allocate(results%dict)
       if (present(post_process)) then 
          call post_process%pack_res(mol, results)
+         if (prlevel > 1 ) call results%dict%dump("post_processing.toml", error)
       end if
    end if
 

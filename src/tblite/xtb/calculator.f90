@@ -386,7 +386,6 @@ subroutine add_coulomb(calc, mol, param, irc)
 
 end subroutine add_coulomb
 
-
 subroutine get_average(average_type, averager)
    character(len=*), intent(in) :: average_type
    procedure(average_interface), pointer, intent(out) :: averager

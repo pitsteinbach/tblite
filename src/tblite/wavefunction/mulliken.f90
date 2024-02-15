@@ -29,8 +29,7 @@ module tblite_wavefunction_mulliken
 
    public :: get_mulliken_shell_charges, get_mulliken_atomic_multipoles
    public :: get_molecular_dipole_moment, get_molecular_quadrupole_moment
-   public :: get_mayer_bond_orders, get_mayer_bond_orders_uhf
-   public :: get_mulliken_shell_multipoles
+   public :: get_mayer_bond_orders, get_mayer_bond_orders_uhf, get_mulliken_shell_multipoles
 
 contains
 

@@ -152,8 +152,8 @@ function new_spin_polarization_api(vctx, vmol, vcalc, wscale) result(vcont) &
    vcont = c_loc(cont)
 end function new_spin_polarization_api
 
-function new_cpcm_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
-   & bind(C, name=namespace//"new_cpcm_solvation_str")
+function new_cpcm_solvation_solvent_api(vctx, vmol, vcalc, solvstr) result(vcont) &
+   & bind(C, name=namespace//"new_cpcm_solvation_solvent")
    type(c_ptr), value :: vctx
    type(vp_context), pointer :: ctx
    type(c_ptr), value :: vmol
@@ -169,26 +169,13 @@ function new_cpcm_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
    class(solvation_type), allocatable :: solv
    type(error_type), allocatable :: error
    integer :: stat
+   logical :: ok
 
    if (debug) print '("[Info]", 1x, a)', "new_cpcm_solvation"
    vcont = c_null_ptr
 
-   if (.not.c_associated(vctx)) return
-   call c_f_pointer(vctx, ctx)
-
-   if (.not.c_associated(vmol)) then
-      call fatal_error(error, "Molecular structure data is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vmol, mol)
-
-   if (.not.c_associated(vcalc)) then
-      call fatal_error(error, "Calculator object is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vcalc, calc)
+   call resolve_ptr_input(vctx, vmol, vcalc, ctx, mol, calc, ok)
+   if (.not.ok) return
 
    call c_f_character(solvstr, solvinp)
 
@@ -209,8 +196,8 @@ function new_cpcm_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
 
 end function
 
-function new_cpcm_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
-   & bind(C, name=namespace//"new_cpcm_solvation_dbl")
+function new_cpcm_solvation_epsilon_api(vctx, vmol, vcalc, eps) result(vcont) &
+   & bind(C, name=namespace//"new_cpcm_solvation_epsilon")
    type(c_ptr), value :: vctx
    type(vp_context), pointer :: ctx
    type(c_ptr), value :: vmol
@@ -224,26 +211,13 @@ function new_cpcm_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
    class(solvation_type), allocatable :: solv
    type(error_type), allocatable :: error
    integer :: stat
-
+   logical :: ok
    if (debug) print '("[Info]", 1x, a)', "new_cpcm_solvation"
    vcont = c_null_ptr
 
-   if (.not.c_associated(vctx)) return
-   call c_f_pointer(vctx, ctx)
+   call resolve_ptr_input(vctx, vmol, vcalc, ctx, mol, calc, ok)
+   if (.not.ok) return
 
-   if (.not.c_associated(vmol)) then
-      call fatal_error(error, "Molecular structure data is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vmol, mol)
-
-   if (.not.c_associated(vcalc)) then
-      call fatal_error(error, "Calculator object is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vcalc, calc)
    solvmodel%cpcm = cpcm_input(eps)
    call new_solvation(solv, mol%ptr, solvmodel, error)
    if (allocated(error)) return
@@ -255,8 +229,8 @@ function new_cpcm_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
 
 end function
 
-function new_alpb_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
-   & bind(C, name=namespace//"new_alpb_solvation_str")
+function new_alpb_solvation_solvent_api(vctx, vmol, vcalc, solvstr) result(vcont) &
+   & bind(C, name=namespace//"new_alpb_solvation_solvent")
    type(c_ptr), value :: vctx
    type(vp_context), pointer :: ctx
    type(c_ptr), value :: vmol
@@ -272,26 +246,12 @@ function new_alpb_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
    class(solvation_type), allocatable :: solv
    type(error_type), allocatable :: error
    integer :: stat
-
-   if (debug) print '("[Info]", 1x, a)', "new_cpcm_solvation"
+   logical :: ok
+   if (debug) print '("[Info]", 1x, a)', "new_alpb_solvation"
    vcont = c_null_ptr
 
-   if (.not.c_associated(vctx)) return
-   call c_f_pointer(vctx, ctx)
-
-   if (.not.c_associated(vmol)) then
-      call fatal_error(error, "Molecular structure data is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vmol, mol)
-
-   if (.not.c_associated(vcalc)) then
-      call fatal_error(error, "Calculator object is missing")
-      call ctx%ptr%set_error(error)
-      return
-   end if
-   call c_f_pointer(vcalc, calc)
+   call resolve_ptr_input(vctx, vmol, vcalc, ctx, mol, calc, ok)
+   if (.not.ok) return
 
    call c_f_character(solvstr, solvinp)
 
@@ -312,8 +272,8 @@ function new_alpb_solvation_str_api(vctx, vmol, vcalc, solvstr) result(vcont) &
    
 end function
 
-function new_alpb_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
-   & bind(C, name=namespace//"new_alpb_solvation_dbl")
+function new_alpb_solvation_epsilon_api(vctx, vmol, vcalc, eps) result(vcont) &
+   & bind(C, name=namespace//"new_alpb_solvation_epsilon")
    type(c_ptr), value :: vctx
    type(vp_context), pointer :: ctx
    type(c_ptr), value :: vmol
@@ -327,10 +287,35 @@ function new_alpb_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
    class(solvation_type), allocatable :: solv
    type(error_type), allocatable :: error
    integer :: stat
+   logical :: ok
 
-   if (debug) print '("[Info]", 1x, a)', "new_cpcm_solvation float input"
+   if (debug) print '("[Info]", 1x, a)', "new_alpb_solvation float input"
    vcont = c_null_ptr
 
+   call resolve_ptr_input(vctx, vmol, vcalc, ctx, mol, calc, ok)
+   if (.not.ok) return
+
+   solvmodel%alpb = alpb_input(eps)
+   call new_solvation(solv, mol%ptr, solvmodel, error)
+   if (allocated(error)) return
+
+   allocate(cont)
+   call move_alloc(solv, cont%ptr)
+
+   vcont = c_loc(cont)
+   
+end function
+
+subroutine resolve_ptr_input(vctx, vmol, vcalc, ctx, mol, calc, ok)
+   type(c_ptr), value :: vctx
+   type(vp_context), pointer :: ctx
+   type(c_ptr), value :: vmol
+   type(vp_structure), pointer :: mol
+   type(c_ptr), value :: vcalc
+   type(vp_calculator), pointer :: calc
+   type(error_type), allocatable :: error
+   logical :: ok
+   ok = .false.
    if (.not.c_associated(vctx)) return
    call c_f_pointer(vctx, ctx)
 
@@ -347,16 +332,8 @@ function new_alpb_solvation_dbl_api(vctx, vmol, vcalc, eps) result(vcont) &
       return
    end if
    call c_f_pointer(vcalc, calc)
-   solvmodel%alpb = alpb_input(eps)
-   call new_solvation(solv, mol%ptr, solvmodel, error)
-   if (allocated(error)) return
-
-   allocate(cont)
-   call move_alloc(solv, cont%ptr)
-
-   vcont = c_loc(cont)
-   
-end function
+   ok = .true.
+end subroutine
 
 subroutine get_spin_constants(wll, mol, bas)
    real(wp), allocatable, intent(out) :: wll(:, :, :)

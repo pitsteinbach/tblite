@@ -521,6 +521,7 @@ subroutine get_result_bond_orders_api(verror, vres, mbo) &
    real(c_double), intent(out) :: mbo(*)
    real(kind=wp), allocatable :: mbo_f(:, :, :)
    logical :: ok
+   real(wp), allocatable :: wbo(:, :, :)
 
    if (debug) print '("[Info]", 1x, a)', "get_result_bond_orders"
 

@@ -65,6 +65,7 @@ tblite_pyext = python.extension_module(
   dependencies: [tblite_dep, python_dep],
   install: install,
   subdir: 'tblite',
+  link_language: 'c',
 )
 
 if install
@@ -72,6 +73,7 @@ if install
     files(
       '__init__.py',
       'ase.py',
+      'exceptions.py',
       'interface.py',
       'library.py',
       'test_ase.py',
