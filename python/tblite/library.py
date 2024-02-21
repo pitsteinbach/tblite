@@ -443,9 +443,33 @@ def get_calculator_orbital_map(ctx, calc):
 set_calculator_max_iter = context_check(lib.tblite_set_calculator_max_iter)
 set_calculator_accuracy = context_check(lib.tblite_set_calculator_accuracy)
 set_calculator_mixer_damping = context_check(lib.tblite_set_calculator_mixer_damping)
-set_calculator_guess = context_check(lib.tblite_set_calculator_guess)
 set_calculator_temperature = context_check(lib.tblite_set_calculator_temperature)
 set_calculator_save_integrals = context_check(lib.tblite_set_calculator_save_integrals)
+
+@context_check
+def set_calculator_guess(ctx, calc, guess: str):
+    """Set the guess method (using a string) for the associated calculator."""
+    dict_guess = {
+        "sad" : 0,
+        "eeq" : 1,
+    }
+    if isinstance(guess, str):
+        guess = guess.lower()
+        try:
+            enum_guess = dict_guess[guess]
+        except KeyError:
+            raise TBLiteValueError(
+                "An unknown guess keyword was entered, currently implemented guess methods:" + [[" "]+key for key in dict_guess]
+            )
+    elif isinstance(guess, int):
+        enum_guess = guess
+    else:
+        raise TBLiteTypeError(
+            "Enter desired guess either as string or integer."
+            )
+
+    
+    lib.tblite_set_calculator_guess(ctx, calc, enum_guess)    
 
 @context_check
 def post_processing_push_back(ctx, calc, str):

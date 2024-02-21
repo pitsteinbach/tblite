@@ -273,7 +273,7 @@ class TBLite(ase.calculators.calculator.Calculator):
                 "temperature", self.parameters.electronic_temperature * kB / Hartree
             )
             calc.set("max-iter", self.parameters.max_iterations)
-            calc.set("guess", {"sad": 0, "eeq": 1}[self.parameters.guess])
+            calc.set("guess", self.parameters.guess)
             calc.set("mixer-damping", self.parameters.mixer_damping)
             calc.set("verbosity", self.parameters.verbosity)
             if self.parameters.electric_field is not None:

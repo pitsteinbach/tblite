@@ -18,7 +18,7 @@ from logging import Logger
 
 import numpy as np
 from pytest import approx, raises
-from tblite.exceptions import TBLiteRuntimeError
+from tblite.exceptions import TBLiteRuntimeError, TBLiteTypeError, TBLiteValueError
 from tblite.interface import Calculator, Result
 
 thr = 1.0e-9
@@ -303,7 +303,7 @@ def test_ipea1():
     numbers, positions = get_ala("xab")
 
     calc = Calculator("IPEA1-xTB", numbers, positions)
-    for key, value in {"accuracy": 1.0, "verbosity": 2}.items():
+    for key, value in {"accuracy": 1.0, "verbosity": 2, "guess": "sad"}.items():
         calc.set(key, value)
 
     res = calc.singlepoint()
@@ -452,6 +452,21 @@ def test_solvation_models():
 
     assert energy == approx(-28.43674134364)
 
+def test_guess_enumerator():
+    """Check the guess enumerator for currently implemented guess methods and unknown ones."""
+    numbers, positions = get_crcp2()
+
+    calc = Calculator("GFN2-xTB", numbers, positions)
+    for guess_method in ["sad", "eeq", 0, 1]:
+        calc.set("guess", guess_method)
+
+    with raises(TBLiteTypeError, math="Enter desired guess either as string or integer."):
+        for guess_method in [True, 1.0]:
+            calc.set("guess", guess_method)
+    
+    with raises(TBLiteValueError, math="An unknown guess keyword was entered, currently implemented guess methods:"):
+        for guess_method in ["guess", 42]:
+            calc.set("guess", guess_method)
 
 def test_result_getter():
     """Check error handling in result container getter"""
