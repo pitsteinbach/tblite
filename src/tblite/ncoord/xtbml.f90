@@ -31,7 +31,7 @@ module tblite_ncoord_xtbml
     real(wp), parameter :: k1 = 16.0_wp
     real(wp) :: kcn = 1.0_wp
     !> Coordination number evaluator
-    type, public, extends(ncoord_type) :: xtbml_ncoord_type
+    type, public :: xtbml_ncoord_type
        real(wp) :: cutoff
        real(wp), allocatable :: rcov(:)
     contains

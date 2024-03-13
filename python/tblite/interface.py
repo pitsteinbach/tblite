@@ -242,9 +242,11 @@ class Result:
         "density-matrix": library.get_density_matrix,
         "overlap-matrix": library.get_overlap_matrix,
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
+        "post-processing-dict": library.get_post_processing_dict,
         "natoms": library.get_number_of_atoms,
         "norbitals": library.get_number_of_orbitals,
         "post-processing-dict": library.get_post_processing_dict,
+        "post-processing" : library.get_post_processing_dict,
     }
     _setter = {}
 
@@ -558,9 +560,9 @@ class Calculator(Structure):
         elif interaction in self._post_processing:
             library.post_processing_push_back(self._ctx, self._calc, self._post_processing[interaction])
         elif ".toml" in interaction:
-            library.post_processing_push_back(self._ctx, self._calc, self._post_processing[interaction])
+            library.post_processing_push_back(self._ctx, self._calc, interaction)
         else:
-            raise ValueError(
+            raise TBLiteValueError(
                 f"Interaction or post processing '{interaction}' is not supported in this calculator"
             )
         

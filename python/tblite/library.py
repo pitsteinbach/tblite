@@ -31,7 +31,7 @@ try:
 except ImportError:
     raise ImportError("tblite C extension unimportable, cannot use C-API")
 
-from .exceptions import TBLiteRuntimeError, TBLiteTypeError
+from .exceptions import TBLiteRuntimeError, TBLiteTypeError, TBLiteValueError
 
 
 def get_version() -> tuple:
@@ -80,11 +80,18 @@ def error_check(func):
 
 
 @ffi.def_extern()
-def logger_callback(message, nchar, data):
+def logger_callback(error, message, nchar, data):
     """Custom logger callback to write output in a Python friendly way"""
-
-    callback = ffi.from_handle(data)
-    callback(ffi.unpack(message, nchar).decode())
+    try:
+        callback = ffi.from_handle(data)
+        callback(ffi.unpack(message, nchar).decode())
+    except Exception as e:
+        error_message = ffi.new("char[]", str(e).encode())
+        lib.tblite_set_error(
+            error,
+            error_message,
+            ffi.NULL,
+        )
 
 
 def context_check(func):
@@ -268,7 +275,7 @@ def get_bond_orders(res):
     """Retrieve Wiberg / Mayer bond orders from result container"""
     _dict = get_post_processing_dict(res=res)
     if not("bond-orders" in _dict.keys()):
-        raise ValueError(
+        raise TBLiteValueError(
                 f"Bond-orders were not calculated. By default they are computed."
             )
     _bond_orders = _dict['bond-orders']

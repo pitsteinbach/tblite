@@ -32,6 +32,7 @@
 #include "tblite/macros.h"
 #include "tblite/error.h"
 #include "tblite/double_dictionary.h"
+#include "tblite/double_dictionary.h"
 
 /// Container to for storing and handling calculation results
 typedef struct _tblite_result* tblite_result;

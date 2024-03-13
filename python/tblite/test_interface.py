@@ -18,6 +18,7 @@ from logging import Logger
 
 import numpy as np
 from pytest import approx, raises
+from tblite.exceptions import TBLiteRuntimeError
 from tblite.interface import Calculator, Result
 
 thr = 1.0e-9
@@ -417,39 +418,6 @@ def test_post_processing_api():
 
     wbo_sp = calc.singlepoint().get("bond-orders")
     assert wbo_sp.ndim == 3
-def test_solvation_models():
-    numbers, positions = get_crcp2()
-
-    calc = Calculator("GFN2-xTB", numbers, positions)
-    calc.set("accuracy", 1.0)
-    calc.add("cpcm-solvation", "ethanol")
-
-    energy = calc.singlepoint().get("energy")
-    assert energy == approx(-28.43248830035)
-
-    calc = Calculator("GFN2-xTB", numbers, positions)
-    calc.set("accuracy", 1.0)
-    calc.add("cpcm-solvation", 7.0)
-
-    energy = calc.singlepoint().get("energy")
-
-    assert energy == approx(-28.43287176929)
-
-    calc = Calculator("GFN2-xTB", numbers, positions)
-    calc.set("accuracy", 1.0)
-    calc.add("alpb-solvation", "ethanol")
-
-    energy = calc.singlepoint().get("energy")
-    assert energy == approx(-28.43680849760)
-
-    calc = Calculator("GFN2-xTB", numbers, positions)
-    calc.set("accuracy", 1.0)
-    calc.add("alpb-solvation", 7.0)
-
-    energy = calc.singlepoint().get("energy")
-
-    assert energy == approx(-28.43674134364)
-
 
 def test_solvation_models():
     numbers, positions = get_crcp2()
@@ -544,3 +512,10 @@ def test_gfn1_logging():
     res = calc.singlepoint()
 
     assert res.get("energy") == approx(-34.980794815805446, abs=thr)
+
+    def broken_logger(message: str) -> None:
+        raise NotImplementedError("This logger is broken")
+
+    calc = Calculator("GFN1-xTB", numbers, positions, color=False, logger=broken_logger)
+    with raises(TBLiteRuntimeError):
+        calc.singlepoint()
