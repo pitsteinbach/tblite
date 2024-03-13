@@ -388,8 +388,6 @@ get_orbital_coefficients = _get_ao_matrix(lib.tblite_get_result_orbital_coeffici
 get_density_matrix = _get_ao_matrix(lib.tblite_get_result_density_matrix)
 get_overlap_matrix = _get_ao_matrix(lib.tblite_get_result_overlap_matrix)
 get_hamiltonian_matrix = _get_ao_matrix(lib.tblite_get_result_hamiltonian_matrix)
-get_ml_features = _get_ml_features(lib.tblite_get_result_ml_features)
-get_ml_labels = _get_ml_labels(lib.tblite_get_result_ml_labels)
 
 
 def _delete_calculator(calc) -> None:

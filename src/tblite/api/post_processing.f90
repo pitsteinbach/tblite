@@ -16,7 +16,7 @@ module tblite_api_post_processing
         type(post_processing_list) :: ptr
     end type vp_post_processing
     
-    logical, parameter :: debug = .true.
+    logical, parameter :: debug = .false.
 
 contains
 

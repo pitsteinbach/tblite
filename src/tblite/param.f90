@@ -51,7 +51,8 @@ module tblite_param
       & k_charge = "charge", k_thirdorder = "thirdorder", k_multipole = "multipole", &
       & k_halogen = "halogen", k_hamiltonian = "hamiltonian", k_element = "element", &
       & k_meta = "meta", k_version = "version", k_name = "name", k_reference = "reference", &
-      & k_format = "format",  k_ml_features = "ml-features", k_post_proc = "post-processing"
+      & k_format = "format",  k_ml_features = "ml-features", k_post_proc = "post-processing",&
+      & k_exchange = "exchange"
 
    !> Current parameter format version
    integer, parameter :: current_format = 1
@@ -260,7 +261,7 @@ subroutine dump_to_toml(self, table, error)
    if (allocated(self%post_proc)) then
       call add_table(table, k_post_proc, child)
       call self%post_proc%dump(child, error)
-      if allocated(error) return
+      if (allocated(error)) return
    end if
    
    if (allocated(self%exchange)) then

@@ -129,7 +129,6 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    do i = 1, bas%nao
       trace = trace + wfn%density(i, i, 1)
    end do 
-   write(*,*) "N. el. ", trace
    call set_mixer(mixer, wfn, info)
    
    call get_density(wfn, solver, ints, ts, error)

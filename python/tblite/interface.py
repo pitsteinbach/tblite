@@ -242,8 +242,6 @@ class Result:
         "density-matrix": library.get_density_matrix,
         "overlap-matrix": library.get_overlap_matrix,
         "hamiltonian-matrix": library.get_hamiltonian_matrix,
-        "ml features": library.get_ml_features,
-        "ml labels": library.get_ml_labels,
         "natoms": library.get_number_of_atoms,
         "norbitals": library.get_number_of_orbitals,
         "post-processing-dict": library.get_post_processing_dict,
@@ -475,10 +473,6 @@ class Calculator(Structure):
         "molecular-multipoles" : "molmom",
         "xtbml" : "xtbml",
         "xtbml_xyz" : "xtbml_xyz"
-    }
-    _post_processing = {
-        "bond-orders" : "bond-orders",
-        "molecular-multipoles" : "molmom",
     }
 
     def __init__(

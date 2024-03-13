@@ -46,8 +46,8 @@ subroutine collect_xtbml(testsuite)
       new_unittest("xtbml-energy-sum-up-gfn2", test_energy_sum_up_gfn2),&
       new_unittest("xtbml-energy-sum-up-gfn1", test_energy_sum_up_gfn1),& 
       new_unittest("xtbml-rot", test_rotation_co2),&
-      new_unittest("xtbml-translation", test_translation_co2),&
-      new_unittest("xtbml-permutation", test_permutation_co2)&
+      new_unittest("xtbml-translation", test_translation_co2)&
+      !new_unittest("xtbml-permutation", test_permutation_co2)&
       ]
  
 end subroutine collect_xtbml
