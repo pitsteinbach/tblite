@@ -38,18 +38,21 @@ module tblite_post_processing_bond_orders
    public :: new_wbo, wiberg_bond_orders
 
    type, extends(post_processing_type) :: wiberg_bond_orders
+      type(timer_type) :: timer
    contains
+      
       procedure :: compute
       procedure :: print_timer
    end type
 
    character(len=24), parameter :: label = "Mayer-Wiberg bond orders"
-   type(timer_type) :: timer
+   
 contains
 
 subroutine new_wbo(new_wbo_type)
    type(wiberg_bond_orders), intent(inout) :: new_wbo_type
    new_wbo_type%label = label
+   
 end subroutine
 
 subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, dict)
@@ -72,7 +75,7 @@ subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, di
    real(kind=wp) :: nel_
    real(wp), allocatable :: pmat(:, :, :)
 
-   call timer%push("total")
+   call self%timer%push("total")
    nspin = size(wfn%density, dim=3)
 
    if ((nspin == 1) .and. (wfn%nel(1) /= wfn%nel(2))) then
@@ -97,6 +100,7 @@ subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, di
       call get_mayer_bond_orders_uhf(calc%bas, integrals%overlap, pmat, wbo)
       wbo_2d = 2*wbo(:, :, 1)
       call dict%add_entry("bond-orders", wbo_2d)
+      deallocate(focc_, pmat)
    else
       allocate(wbo(mol%nat, mol%nat, nspin), source=0.0_wp)
       call get_mayer_bond_orders(calc%bas, integrals%overlap, wfn%density, wbo)
@@ -107,9 +111,9 @@ subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, di
          call dict%add_entry("bond-orders", wbo(:, :, :))
       end if
    end if
-
+   deallocate(wbo)
    
-   call timer%pop()
+   call self%timer%pop()
 end subroutine
 
 subroutine print_timer(self, prlevel, ctx)
@@ -123,10 +127,10 @@ subroutine print_timer(self, prlevel, ctx)
       & ]
    if (prlevel > 2) then
       call ctx%message(label//" timing details:")
-      ttime = timer%get("total")
+      ttime = self%timer%get("total")
       call ctx%message(" total:"//repeat(" ", 16)//format_time(ttime))
       do it = 1, size(labels)
-         stime = timer%get(labels(it))
+         stime = self%timer%get(labels(it))
          if (stime <= epsilon(0.0_wp)) cycle
          call ctx%message(" - "//labels(it)//format_time(stime) &
             & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")

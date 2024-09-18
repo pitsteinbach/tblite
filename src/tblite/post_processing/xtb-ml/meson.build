@@ -22,5 +22,6 @@ srcs += files(
   'features.f90',
   'geometry.f90',
   'orbital_energy.f90',
+  'potential.f90',
   'xtbml.f90',
 )

@@ -37,8 +37,8 @@ subroutine setup(self)
   self%label = label
   if (allocated(self%dict)) deallocate(self%dict)
   allocate(self%dict)
-  if (allocated(self%dict_ext)) deallocate(self%dict_ext)
-  allocate(self%dict_ext)
+  !if (allocated(self%dict_ext)) deallocate(self%dict_ext)
+  !allocate(self%dict_ext)
 end subroutine
 
 subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel, ctx)
@@ -69,6 +69,7 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
   allocate(tmp_energy(mol%nat), tot_energy(mol%nat),source=0.0_wp)
   call get_electronic_energy(integrals%hamiltonian, wfn%density, e_ao)
   call reduce(tmp_energy, e_ao, calc%bas%ao2at)
+  deallocate(e_ao)
   call self%dict%add_entry("E_EHT", tmp_energy)
   tot_energy = tmp_energy
   tmp_energy = 0.0_wp
@@ -78,6 +79,7 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
       call cont%update(mol, cache)
       call cont%get_engrad(mol, cache, tmp_energy)
       call self%dict%add_entry("E_rep", tmp_energy)
+      deallocate(cache)
     end associate
   end if
   tot_energy = tot_energy + tmp_energy
@@ -106,6 +108,7 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
         call self%dict%add_entry("E_AES", tmp_energy)
         tot_energy = tot_energy + tmp_energy
     end if
+    deallocate(cache)
     end associate
   end if
   tmp_energy = 0.0_wp
@@ -116,6 +119,7 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
       call cont%get_engrad(mol, cache, tmp_energy)
       call self%dict%add_entry("E_HX", tmp_energy)
     end associate
+    deallocate(cache)
   end if
   tot_energy = tot_energy + tmp_energy
   tmp_energy = 0.0_wp
@@ -135,6 +139,7 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
         call self%dict%add_entry("E_disp2", e_disp_tot-e_disp_ATM)
         call self%dict%add_entry("E_disp3", e_disp_ATM)
         tmp_energy = e_disp_tot
+        deallocate(d3, e_disp_ATM, e_disp_tot)
     type is (d4_dispersion)
         allocate(e_disp_tot(mol%nat), e_disp_ATM(mol%nat), source=0.0_wp)
         call cont%update(mol, cache)
@@ -148,8 +153,10 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
         call self%dict%add_entry("E_disp2", e_disp_tot-e_disp_ATM)
         call self%dict%add_entry("E_disp3", e_disp_ATM)
         tmp_energy = e_disp_tot
+        deallocate(d4, e_disp_tot, e_disp_ATM)
     end select
     end associate
+    deallocate(cache)
   end if
   tot_energy = tot_energy + tmp_energy
   tmp_energy = 0.0_wp
@@ -161,10 +168,12 @@ subroutine compute_features(self, mol, wfn, integrals, calc, cache_list, prlevel
         call cont%get_energy(mol, cache, wfn, tmp_energy)
         call self%dict%add_entry(cont%info(0, ""), tmp_energy)
     end associate
+    deallocate(cache)
   end if
   tot_energy = tot_energy + tmp_energy
   call self%dict%add_entry("E_tot", tot_energy)
   call self%dict%add_entry("w_tot", tot_energy/sum(tot_energy))
+  deallocate(tot_energy)
 
 end subroutine
 

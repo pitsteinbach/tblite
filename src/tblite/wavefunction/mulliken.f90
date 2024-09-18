@@ -226,6 +226,7 @@ subroutine get_mayer_bond_orders_uhf(bas, smat, pmat, mbo)
          end do
       end do
    end do
+   deallocate(psmat)
 
    call updown_to_magnet(mbo)
 end subroutine get_mayer_bond_orders_uhf

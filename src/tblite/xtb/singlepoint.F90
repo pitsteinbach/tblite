@@ -349,7 +349,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call timer%push("post processing")
       call collect_containers_caches(rcache, ccache, hcache, dcache, icache, calc, cache_list)
       call post_process%compute(mol, wfn, ints, calc, cache_list, ctx, prlevel)
-      call post_process%print_csv(mol)
+      !call post_process%print_csv(mol)
       if (prlevel > 1) call ctx%message(post_process%info(prlevel, " | "))
       call post_process%print_timer(prlevel, ctx)
       deallocate(cache_list)
@@ -393,6 +393,10 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call fatal_error(error, "SCF not converged in "//format_string(iscf, '(i0)')//" cycles")
       call ctx%set_error(error)
    end if
+
+   call mkl_thread_free_buffers()
+   call mkl_free_buffers()
+
 
 end subroutine xtb_singlepoint
 

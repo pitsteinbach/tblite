@@ -29,7 +29,7 @@ contains
       character(len=*), optional :: method
       type(param_record), optional :: param
       type(error_type), allocatable :: error
-      real(kind=wp) :: xyz(3, 1) = [0.0_wp, 0.0_wp, 0.0_wp]
+      real(kind=wp) :: xyz(3, 1) = reshape([0.0_wp,0.0_wp, 0.0_wp], [3, 1])
       real(kind=wp), allocatable :: atomic_densities(:,:,:)
       integer :: num(1)
       integer, allocatable :: nao_id(:), nao_at(:)

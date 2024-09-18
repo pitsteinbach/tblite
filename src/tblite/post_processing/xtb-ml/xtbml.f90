@@ -20,6 +20,7 @@ module tblite_post_processing_xtbml_features
     use tblite_xtb_calculator, only : xtb_calculator
     use tblite_post_processing_type, only : post_processing_type
     use tblite_param_xtbml_features, only : xtbml_features_record
+    use tblite_xtbml_potenetial_features, only : xtbml_potential_features_type
     implicit none
     private
     public :: xtbml_type, new_xtbml_features
@@ -29,13 +30,15 @@ module tblite_post_processing_xtbml_features
         type(xtbml_orbital_features_type), allocatable :: orb
         type(xtbml_energy_features_type), allocatable :: energy
         type(xtbml_convolution_type), allocatable :: conv
+        type(xtbml_potential_features_type), allocatable :: pot
+        type(timer_type) :: timer
     contains
         procedure :: compute
         procedure :: info
         procedure :: print_timer
     end type
     character(len=*), parameter :: label = "  xtbml features:"
-    type(timer_type) :: timer
+    
 contains
 
 subroutine new_xtbml_features(new_xtbml_model, param)
@@ -44,8 +47,7 @@ subroutine new_xtbml_features(new_xtbml_model, param)
         
         new_xtbml_model%label = label
 
-        if (param%xtbml_geometry) then
-            
+        if (param%xtbml_geometry) then 
             allocate(new_xtbml_model%geom)
             call new_xtbml_model%geom%setup()
         end if
@@ -73,6 +75,11 @@ subroutine new_xtbml_features(new_xtbml_model, param)
             call new_xtbml_model%conv%setup()
         end if
 
+        if (param%xtbml_potential) then
+            allocate(new_xtbml_model%pot)
+            call new_xtbml_model%pot%setup()
+        end if
+
     end subroutine
 
     subroutine compute(self, mol, wfn, integrals, calc, cache_list, ctx, prlevel, dict)
@@ -92,53 +99,63 @@ subroutine new_xtbml_features(new_xtbml_model, param)
         integer :: prlevel
         type(xtbml_type) :: ml_model
 
-        call timer%push("total")
+        call self%timer%push("total")
         
 
         if (allocated(self%geom)) then
-            call timer%push("geometry") 
+            call self%timer%push("geometry") 
             associate(category => self%geom)
                 call category%compute_features(mol, wfn, integrals, calc, cache_list, prlevel, ctx)
                 dict = dict + category%dict
                 deallocate(category%dict)
             end associate
-            call timer%pop()
+            call self%timer%pop()
         end if
 
         if (allocated(self%dens)) then
-            call timer%push("density")
+            call self%timer%push("density")
             associate(category => self%dens)
                 call category%compute_features(mol, wfn, integrals, calc, cache_list, prlevel, ctx)
                 dict = dict + category%dict
                 deallocate(category%dict)
             end associate
-            call timer%pop()
+            call self%timer%pop()
         end if
 
         if (allocated(self%orb)) then
-            call timer%push("orbital energy")
+            call self%timer%push("orbital energy")
             associate(category => self%orb)
                 call category%compute_features(mol, wfn, integrals, calc, cache_list, prlevel, ctx)
                 dict = dict + category%dict
                 deallocate(category%dict)
             end associate
-            call timer%pop()
+            call self%timer%pop()
         end if
 
         if (allocated(self%energy)) then
-            call timer%push("energy")
+            call self%timer%push("energy")
             associate(category => self%energy)
                 call category%compute_features(mol, wfn, integrals, calc, cache_list, prlevel, ctx)
                 dict = dict + category%dict
                 deallocate(category%dict)
             end associate
-            call timer%pop()
+            call self%timer%pop()
+        end if
+
+        if (allocated(self%pot)) then
+            call self%timer%push("potential")
+            associate(category => self%pot)
+                call category%compute_features(mol, wfn, integrals, calc, cache_list, prlevel, ctx)
+                dict = dict + category%dict
+                deallocate(category%dict)
+            end associate
+            call self%timer%pop()
         end if
 
         if (allocated(self%conv)) then 
 
             if (allocated(self%geom)) then
-                call timer%push("geometry convolution")
+                call self%timer%push("geometry convolution")
                 !self%conv%cn = self%geom%cn_atom
                 
                 call self%conv%compute_kernel(mol)
@@ -147,32 +164,32 @@ subroutine new_xtbml_features(new_xtbml_model, param)
                     dict = dict + category%dict_ext
                     deallocate(category%dict_ext)
                 end associate
-                call timer%pop()
+                call self%timer%pop()
             else
                 call self%conv%compute_kernel(mol)
             end if
     
             if (allocated(self%dens)) then
-                call timer%push("density convolution")
+                call self%timer%push("density convolution")
                 associate(category => self%dens)
                     call category%compute_extended(mol, wfn, integrals, calc, cache_list, prlevel, ctx, self%conv)
                     dict = dict + category%dict_ext
                     deallocate(category%dict_ext)
                 end associate
-                call timer%pop()
+                call self%timer%pop()
             end if
 
             if (allocated(self%orb)) then
-                call timer%push("orbital energy convolution")
+                call self%timer%push("orbital energy convolution")
                 associate(category => self%orb)
                     call category%compute_extended(mol, wfn, integrals, calc, cache_list, prlevel, ctx, self%conv)
                     dict = dict + category%dict_ext
                     deallocate(category%dict_ext)
                 end associate
-                call timer%pop()
+                call self%timer%pop()
             end if
         end if            
-        call timer%pop()
+        call self%timer%pop()
     end subroutine
 
 pure function info(self, verbosity, indent) result(str)
@@ -229,10 +246,10 @@ subroutine print_timer(self, prlevel, ctx)
 
     if (prlevel > 2) then
         call ctx%message("ML features timing details:")
-        ttime = timer%get("total")
+        ttime = self%timer%get("total")
         call ctx%message(" total:"//repeat(" ", 16)//format_time(ttime))        
         do it = 1, size(labels)
-            stime = timer%get(labels(it))
+            stime = self%timer%get(labels(it))
             if (stime <= epsilon(0.0_wp)) cycle
             call ctx%message(" - "//labels(it)//format_time(stime) &
                 & //" ("//format_string(int(stime/ttime*100), '(i3)')//"%)")

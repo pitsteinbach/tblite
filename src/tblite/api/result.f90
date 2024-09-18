@@ -105,7 +105,11 @@ subroutine delete_result_api(vres) &
 
    if (c_associated(vres)) then
       call c_f_pointer(vres, res)
-
+      if (allocated(res%energy)) deallocate(res%energy)
+      if (allocated(res%gradient)) deallocate(res%gradient) 
+      if (allocated(res%wfn)) deallocate(res%wfn)
+      if (allocated(res%results%dict)) deallocate(res%results%dict)
+      deallocate(res%results)
       deallocate(res)
       vres = c_null_ptr
    end if

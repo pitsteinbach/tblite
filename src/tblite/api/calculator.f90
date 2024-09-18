@@ -70,7 +70,7 @@ module tblite_api_calculator
       integer :: guess = tblite_guess_sad
       !> Numbers of spin channels for calculator
       integer :: nspin = 1
-      type(post_processing_list) :: post_proc
+      type(post_processing_list), allocatable :: post_proc
    end type vp_calculator
 
 
@@ -200,7 +200,7 @@ subroutine delete_calculator_api(vcalc) &
 
    if (c_associated(vcalc)) then
       call c_f_pointer(vcalc, calc)
-
+      deallocate(calc%post_proc)
       deallocate(calc)
       vcalc = c_null_ptr
    end if
@@ -538,6 +538,9 @@ subroutine get_singlepoint_api(vctx, vmol, vcalc, vres) &
    call check_results(res%results)
    
    call check_wavefunction(res%wfn, mol%ptr, calc%ptr, calc%etemp, calc%nspin, calc%guess)
+
+   if (.not.(allocated(calc%post_proc))) allocate(calc%post_proc)
+
    if (calc%post_proc%n == 0) then 
       f_char = "bond-orders"
       call add_post_processing(calc%post_proc, f_char, error)
@@ -615,7 +618,7 @@ if (.not.c_associated(vcalc)) then
    return
 end if
 call c_f_pointer(vcalc, calc)
-
+if (.not.(allocated(calc%post_proc))) allocate(calc%post_proc)
 call add_post_processing(calc%post_proc, config_str, error)
 if (allocated(error)) call ctx%ptr%set_error(error)
 
@@ -650,6 +653,7 @@ if (.not.c_associated(vcalc)) then
    return
 end if
 call c_f_pointer(vcalc, calc)
+if (.not.(allocated(calc%post_proc))) allocate(calc%post_proc)
 call add_post_processing(calc%post_proc, param%ptr%post_proc)
 if (allocated(error)) call ctx%ptr%set_error(error)
 

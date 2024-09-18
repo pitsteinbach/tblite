@@ -30,7 +30,7 @@ module tblite_param_xtbml_features
 
    character(len=*), parameter :: k_xtbmlgeometry = "geometry", k_xtbmldensity = "density", &
       & k_xtbmlorbital = "orbital", k_xtbmlenergy = "energy", k_xtbmlconvolution = "convolution", k_xtbmla = "a", &
-      & k_tensor = "tensorial-output", k_xtbml = "xtbml"
+      & k_tensor = "tensorial-output", k_xtbml = "xtbml", k_potential = "potential"
 
    !> Parametrization record specifying the dispersion model
    type, public, extends(serde_record) :: xtbml_features_record
@@ -46,9 +46,10 @@ module tblite_param_xtbml_features
       logical :: xtbml_energy
       !> Compute extended feature i.e. do CN weigthed real space convolution
       logical :: xtbml_convolution
+      !> Compute potential based features
+      logical :: xtbml_potential
       !> Scaling for logistic function, convolution over an array of values is supported
       real(wp), allocatable :: xtbml_a(:)
-      
    contains
       generic :: load => load_from_array
       generic :: dump => dump_to_array
@@ -98,6 +99,8 @@ subroutine populate_default_param(param, tensor)
    param%xtbml_convolution = .true.
      !> Scaling for logistic function, convolution over an array of values is supported
    param%xtbml_a = [1.0_wp]
+
+   param%xtbml_potential = .true.
 
 end subroutine
 
@@ -168,6 +171,12 @@ subroutine load_from_toml(self, table, error)
          
    end if
 
+   call get_value(table, k_potential, self%xtbml_potential, .false., stat=stat)
+   if (stat /= 0) then
+      call fatal_error(error, "Cannot read entry for xtbml potential, boolean expected")
+      return
+   end if 
+
 end subroutine load_from_toml
 
 
@@ -190,6 +199,7 @@ subroutine dump_to_toml(self, table, error)
    call set_value(child, k_xtbmlorbital, self%xtbml_orbital_energy)
    call set_value(child, k_xtbmlenergy, self%xtbml_energy)
    call set_value(child, k_xtbmlconvolution, self%xtbml_convolution)
+   call set_value(child, k_potential, self%xtbml_potential)
   
 end subroutine dump_to_toml
 
