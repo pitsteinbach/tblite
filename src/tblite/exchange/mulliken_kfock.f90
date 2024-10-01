@@ -287,19 +287,17 @@ subroutine get_energy(self, mol, cache, wfn ,energies)
    !> Reusable data container
    type(container_cache), intent(inout) :: cache
 
-   real(wp) :: temp(self%nao, self%nao)
+   real(wp) :: temp(self%nao, self%nao), tmp_
    type(exchange_cache), pointer :: ptr
    integer :: iao, jao, spin
 
    call view(cache, ptr)
-   write(*,*) ptr%prev_F
-
    !!$omp parallel do collapse(3) schedule(runtime) default(none) &
-   !!$omp reduction(+:energies) shared( wfn) private(spin, iao, jao)
+   !!$omp reduction(+:energies) shared(ptr, wfn) private(spin, iao, jao)
    do spin = 1, size(wfn%density, 3)
       do iao = 1, size(wfn%density, 2)
          do jao = 1, size(wfn%density, 1)
-            energies(iao) = energies(iao) + ptr%prev_F(jao, iao) * wfn%density(jao, iao, spin)
+            energies(iao) = energies(iao) + ptr%prev_F(jao, iao) * wfn%density(jao, iao, spin) * 0.5
          end do
       end do
    end do
