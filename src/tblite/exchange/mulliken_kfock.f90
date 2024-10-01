@@ -40,6 +40,8 @@ module tblite_mulliken_kfock
       integer, allocatable :: aonum(:)
       !> Convert from sh to at
       integer, allocatable :: sh2at(:)
+      !> Convert from ao to at
+      integer, allocatable :: ao2at(:)
       !> Compute gamma
       logical :: compute_gamma
       !>
@@ -178,10 +180,11 @@ subroutine new_range_separated_mulliken_k_fock(self, mol, hardness, allowsingle,
    type(basis_type) :: bas
     allowincr = incr
    self%nao = bas%nao
-   allocate(self%aonum(bas%nsh), self%sh2at(bas%nsh))
+   allocate(self%aonum(bas%nsh), self%sh2at(bas%nsh),self%ao2at(self%nao))
    self%aonum = bas%nao_sh
    self%sh2at = bas%sh2at
    self%nsh = bas%nsh
+   self%ao2at = bas%ao2at
 
    if (allowsingle .eqv. .true.) then
       self%allowsingle = 1
@@ -286,8 +289,6 @@ subroutine get_energy(self, mol, cache, wfn ,energies)
    real(wp), intent(inout) :: energies(:)
    !> Reusable data container
    type(container_cache), intent(inout) :: cache
-
-   real(wp) :: temp(self%nao, self%nao), tmp_
    type(exchange_cache), pointer :: ptr
    integer :: iao, jao, spin
 
@@ -297,7 +298,7 @@ subroutine get_energy(self, mol, cache, wfn ,energies)
    do spin = 1, size(wfn%density, 3)
       do iao = 1, size(wfn%density, 2)
          do jao = 1, size(wfn%density, 1)
-            energies(iao) = energies(iao) + ptr%prev_F(jao, iao) * wfn%density(jao, iao, spin) * 0.5
+            energies(self%ao2at(iao)) = energies(self%ao2at(iao)) + ptr%prev_F(jao, iao) * wfn%density(jao, iao, spin) * 0.5
          end do
       end do
    end do
