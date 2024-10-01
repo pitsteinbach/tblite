@@ -174,7 +174,7 @@ subroutine add_kao_to_h1(bas, kao, h1)
       do iao = 1, bas%nao
          do jao = 1, bas%nao
             h1(jao, iao, spin) = h1(jao, iao, spin) &
-               & - kao(jao, iao, spin)
+               &  + kao(jao, iao, spin)
          end do
       end do
    end do
