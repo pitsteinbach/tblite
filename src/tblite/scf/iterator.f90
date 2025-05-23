@@ -30,7 +30,7 @@ module tblite_scf_iterator
    use tblite_wavefunction_mulliken, only : get_mulliken_shell_charges, &
       & get_mulliken_atomic_multipoles
    use tblite_xtb_coulomb, only : tb_coulomb
-   use tblite_scf_mixer, only : mixer_type, get_mixer_dimension, set_mixer, get_mixer, diff_mixer
+   use tblite_scf_mixer, only : mixer_type, get_mixer_dimension
    use tblite_scf_gambits_mixers, only : gambits_mixers_type
    use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved
    use tblite_scf_potential, only : potential_type, add_pot_to_h1
@@ -235,6 +235,80 @@ subroutine get_qat_from_qsh(bas, qsh, qat)
       end do
    end do
 end subroutine get_qat_from_qsh
+
+subroutine set_mixer(mixer, wfn, info)
+   use tblite_scf_info, only : atom_resolved, shell_resolved
+   class(mixer_type), intent(inout) :: mixer
+   type(wavefunction_type), intent(in) :: wfn
+   type(scf_info), intent(in) :: info
+
+   select case(info%charge)
+   case(atom_resolved)
+      call mixer%set(wfn%qat)
+   case(shell_resolved)
+      call mixer%set(wfn%qsh)
+   end select
+
+   select case(info%dipole)
+   case(atom_resolved)
+      call mixer%set(wfn%dpat)
+   end select
+
+   select case(info%quadrupole)
+   case(atom_resolved)
+      call mixer%set(wfn%qpat)
+   end select
+end subroutine set_mixer
+
+subroutine diff_mixer(mixer, wfn, info)
+   use tblite_scf_info, only : atom_resolved, shell_resolved
+   class(mixer_type), intent(inout) :: mixer
+   type(wavefunction_type), intent(in) :: wfn
+   type(scf_info), intent(in) :: info
+
+   select case(info%charge)
+   case(atom_resolved)
+      call mixer%diff(wfn%qat)
+   case(shell_resolved)
+      call mixer%diff(wfn%qsh)
+   end select
+
+   select case(info%dipole)
+   case(atom_resolved)
+      call mixer%diff(wfn%dpat)
+   end select
+
+   select case(info%quadrupole)
+   case(atom_resolved)
+      call mixer%diff(wfn%qpat)
+   end select
+end subroutine diff_mixer
+
+subroutine get_mixer(mixer, bas, wfn, info)
+   use tblite_scf_info, only : atom_resolved, shell_resolved
+   class(mixer_type), intent(inout) :: mixer
+   type(basis_type), intent(in) :: bas
+   type(wavefunction_type), intent(inout) :: wfn
+   type(scf_info), intent(in) :: info
+
+   select case(info%charge)
+   case(atom_resolved)
+      call mixer%get(wfn%qat)
+   case(shell_resolved)
+      call mixer%get(wfn%qsh)
+      call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
+   end select
+
+   select case(info%dipole)
+   case(atom_resolved)
+      call mixer%get(wfn%dpat)
+   end select
+
+   select case(info%quadrupole)
+   case(atom_resolved)
+      call mixer%get(wfn%qpat)
+   end select
+end subroutine get_mixer
 
 subroutine get_density(wfn, solver, ints, ts, error)
    !> Tight-binding wavefunction data
