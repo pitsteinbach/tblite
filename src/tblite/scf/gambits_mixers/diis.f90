@@ -17,13 +17,13 @@
 !> @file tblite/scf/mixers/diis.f90
 !> Implementing DIIS (direct inversion in the iterative subspace) mixing
 
-module tblite_scf_mixer_diis
-   use tblite_scf_mixer
+module tblite_scf_gambits_diis
+   use tblite_scf_gambits_mixer
    use iso_c_binding
    implicit none
 
    !> DIIS mixer
-   type, extends(mixer_type) :: diis_type
+   type, extends(gambits_mixer_type) :: gambits_diis_type
 
    contains
       !> Set new object to mix
@@ -36,7 +36,7 @@ module tblite_scf_mixer_diis
       procedure :: construct_error => construct_error_dp, construct_error_sp
       !> Set the error vector manually
       procedure :: set_error => set_error_dp, set_error_sp
-   end type diis_type
+   end type gambits_diis_type
 
    interface
       type(c_ptr) function c_new_diis(ndim, memory, alpha, nao) bind(C,name="SetupDIIS")
@@ -129,7 +129,7 @@ contains
       use mctc_io, only : structure_type
       use tblite_scf_info, only : scf_info
       !> DIIS object
-      class(diis_type), intent(out) :: self
+      class(gambits_diis_type), intent(out) :: self
       !> Molecular structure data
       type(structure_type), intent(in) :: mol
       !> Single-point calculator
@@ -146,7 +146,7 @@ contains
    subroutine construct_error_dp(self, hmat, pmat, smat)
       use mctc_env, only : dp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(dp), intent(in) :: hmat(:,:)
       !> Density matrix
@@ -160,7 +160,7 @@ contains
    subroutine construct_error_sp(self, hmat, pmat, smat)
       use mctc_env, only : sp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(sp), intent(in) :: hmat(:,:)
       !> Density matrix
@@ -175,7 +175,7 @@ contains
    subroutine set_error_dp(self, error)
       use mctc_env, only : dp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Error matrix
       real(dp), intent(in) :: error(:,:)
 
@@ -185,7 +185,7 @@ contains
    subroutine set_error_sp(self, error)
       use mctc_env, only : sp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Error matrix
       real(sp), intent(in) :: error(:,:)
 
@@ -196,7 +196,7 @@ contains
    subroutine set_diis_dp(self, hmat)
       use mctc_env, only : dp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(dp), intent(in) :: hmat(:,:)
       
@@ -206,7 +206,7 @@ contains
    subroutine set_diis_sp(self, hmat)
       use mctc_env, only : sp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(sp), intent(in) :: hmat(:,:)
   
@@ -217,7 +217,7 @@ contains
    subroutine diff_diis_dp(self, hmat)
       use mctc_env, only : dp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(dp), intent(in) :: hmat(:,:)
 
@@ -227,7 +227,7 @@ contains
    subroutine diff_diis_sp(self, hmat)
       use mctc_env, only : sp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(sp), intent(in) :: hmat(:,:)
 
@@ -238,7 +238,7 @@ contains
    subroutine get_diis_dp(self, hmat)
       use mctc_env, only : dp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(dp), intent(out) :: hmat(:,:)
 
@@ -248,11 +248,11 @@ contains
    subroutine get_diis_sp(self, hmat)
       use mctc_env, only : sp
       !> Instance of the DIIS mixer
-      class(diis_type), intent(inout) :: self
+      class(gambits_diis_type), intent(inout) :: self
       !> Fock matrix
       real(sp), intent(out) :: hmat(:,:)
 
       call get_mixer_data_sp(self%ptr, hmat, size(hmat))
    end subroutine get_diis_sp
 
-end module tblite_scf_mixer_diis
+end module tblite_scf_gambits_diis

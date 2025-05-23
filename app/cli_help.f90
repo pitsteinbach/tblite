@@ -125,6 +125,9 @@ module tblite_cli_help
       "      --solver <name>      Electronic solver for SCF, possible options:"//nl//&
       "                           gvd (default), gvr, gvd-gpu (if compiled with GPU suport)"//nl//&
       "                           DMP solvers: sp2, sp2-accel, trs4"//nl//&
+      "      --mixer <int>        Set the type of convergence accelerator (mixer) possible options:"//nl//&
+      "                           native broyden (0, default), GAMBITS Broyden (1), GAMBITS DIIS (2)."//nl//&
+      "      --mixmem <int>       Set the number of past iterations to be used by the mixer."//nl//&
       "      --efield <real>,<real>,<real>"//nl//&
       "                           Homogeneous electric field in V/Å."//nl//&
       "      --alpb <name>        Use analytical linearized Poisson-Boltzmann (ALPB) solvation model."//nl//&

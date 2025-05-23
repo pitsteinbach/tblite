@@ -159,6 +159,14 @@ subroutine run_main(config, error)
 
    if (allocated(config%max_iter)) calc%max_iter = config%max_iter
 
+   if (allocated(config%mixer)) calc%mixer_type = config%mixer
+
+   if (allocated(config%mixer_memory)) then 
+      calc%mixer_mem = config%mixer_memory
+   else if (calc%mixer_type == 2) then
+      calc%mixer_mem = 5 ! This value still has to be benchmarked
+   end if
+
    use_guess = .true.
    restart_exist = .false.
    if (config%restart) restart_exist = exists(config%restart_file)

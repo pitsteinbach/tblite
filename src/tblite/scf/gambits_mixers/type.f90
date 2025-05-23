@@ -19,10 +19,10 @@
 
 !> Provides an electronic mixer implementation
 
-module tblite_scf_mixers
+module tblite_scf_gambits_mixers
     use mctc_env, only: wp
-    use tblite_scf_mixer_broyden, only: broyden_type, new_broyden
-    use tblite_scf_mixer_diis, only: diis_type, new_diis
+    use tblite_scf_gambits_broyden, only: gambits_broyden_type, new_broyden
+    use tblite_scf_gambits_diis, only: gambits_diis_type, new_diis
  
     use tblite_xtb_calculator, only : xtb_calculator
     use mctc_io, only : structure_type
@@ -30,11 +30,11 @@ module tblite_scf_mixers
     use tblite_scf_info, only : scf_info
     use iso_c_binding
  
-    type, public :: mixers_type
+    type, public :: gambits_mixers_type
        !> Broyden mixer object
-       type(broyden_type), allocatable :: broyden
+       type(gambits_broyden_type), allocatable :: broyden
        !> DIIS mixer object
-       type(diis_type), allocatable :: diis
+       type(gambits_diis_type), allocatable :: diis
        !> Pointer to the current mixer
        type(c_ptr) :: currptr
  
@@ -43,7 +43,7 @@ module tblite_scf_mixers
        procedure :: setup
        !> Destroy mixers
        procedure :: destroy
-    end type
+    end type gambits_mixers_type
  
     interface
        subroutine destroy_mixer(mixer) bind(C,name="Destroy")
@@ -55,7 +55,7 @@ module tblite_scf_mixers
  contains
     subroutine setup(self, mixer_type, mol, calc, wfn, info)
        !> Mixers object
-       class(mixers_type), intent(inout) :: self
+       class(gambits_mixers_type), intent(inout) :: self
        !> Type(s) of self-consistent iteration mixing (0: Broyden, 1: DIIS)
        integer, intent(in) :: mixer_type
        !> Molecular structure data
@@ -68,11 +68,11 @@ module tblite_scf_mixers
        type(scf_info) :: info
  
        select case (mixer_type)
-        case(0)
+        case(1)
          allocate(self%broyden)
          call new_broyden(self%broyden, mol, calc, wfn, info)
          self%currptr=self%broyden%ptr
-        case(1)
+        case(2)
          allocate(self%diis)
           call new_diis(self%diis, mol, calc, info)
           self%currptr=self%diis%ptr
@@ -83,7 +83,7 @@ module tblite_scf_mixers
  
  subroutine destroy(self)
     !> Mixer object
-    class(mixers_type), intent(inout) :: self
+    class(gambits_mixers_type), intent(inout) :: self
  
     if (allocated(self%broyden)) then
        call destroy_mixer(self%broyden%ptr)
@@ -95,5 +95,5 @@ module tblite_scf_mixers
  
  end subroutine destroy
  
- end module tblite_scf_mixers
+ end module tblite_scf_gambits_mixers
  

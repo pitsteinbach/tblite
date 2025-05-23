@@ -78,6 +78,10 @@ module tblite_cli
       real(wp) :: accuracy = 1.0_wp
       !> Maximum number of iterations for SCF
       integer, allocatable :: max_iter
+      !> Type of mixer
+      integer, allocatable :: mixer
+      !> Memory of the mixer
+      integer, allocatable :: mixer_memory
       !> Electronic temperature
       real(wp) :: etemp = 300.0_wp
       !> Electronic temperature for the guess (currently only CEH)
@@ -501,6 +505,26 @@ subroutine get_run_arguments(config, list, start, error)
          allocate(config%max_iter)
          call get_argument_as_int(arg, config%max_iter, error)
          if (allocated(error)) exit
+
+      case("--mixer")
+      iarg = iarg + 1
+      call list%get(iarg, arg)
+      allocate(config%mixer)
+      call get_argument_as_int(arg, config%mixer, error)
+      if (allocated(error)) exit
+      if (config%mixer < 0 .or. config%mixer > 2) then
+         call fatal_error(error,"Mixer must be either 0 (native Broyden), 1 (GAMBITS Broyden) or 2 (GAMBITS DIIS)")
+      end if
+   
+      case("--mixmem")
+         iarg = iarg + 1
+         call list%get(iarg, arg)
+         allocate(config%mixer_memory)
+         call get_argument_as_int(arg, config%mixer_memory, error)
+         if (allocated(error)) exit
+         if (config%mixer_memory <= 0) then
+            call fatal_error(error,"Mixmem must be larger than 0")
+         end if
 
       case("--solver")
          iarg = iarg + 1

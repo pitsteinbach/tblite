@@ -15,6 +15,7 @@
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
 add_subdirectory("mixer")
+add_subdirectory("gambits_mixers")
 
 set(dir "${CMAKE_CURRENT_SOURCE_DIR}")
 

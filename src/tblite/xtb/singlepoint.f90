@@ -36,6 +36,7 @@ module tblite_xtb_singlepoint
    use tblite_scf, only : mixer_type, new_mixer, scf_info, next_scf, &
       & get_mixer_dimension, potential_type, new_potential
    use tblite_scf_solver, only : solver_type
+   use tblite_scf_gambits_mixers, only : gambits_mixers_type, setup, destroy
    use tblite_timer, only : timer_type, format_time
    use tblite_wavefunction, only : wavefunction_type, &
       & get_alpha_beta_occupation, &
@@ -63,6 +64,24 @@ module tblite_xtb_singlepoint
       label_cutoff = "integral cutoff", &
       label_electronic = "electronic energy", &
       label_total = "total energy"
+
+   interface get_error
+      real function get_error_sp(mixer,iter,dummy) bind(C,name="GetErrorSP")
+         use iso_c_binding
+         use mctc_env, only : sp
+         type(c_ptr), value :: mixer
+         integer(c_int), value :: iter
+         real(c_float), value :: dummy
+      end function get_error_sp
+   
+      double precision function get_error_dp(mixer,iter,dummy) bind(C,name="GetErrorDP")
+         use iso_c_binding
+         use mctc_env, only : dp
+         type(c_ptr), value :: mixer
+         integer(c_int), value :: iter
+         real(c_double), value :: dummy
+      end function get_error_dp
+   end interface
 
 contains
 
@@ -95,13 +114,14 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    logical :: grad, converged, econverged, pconverged
    integer :: prlevel
    real(wp) :: econv, pconv, cutoff, elast, nel
-   real(wp), allocatable :: energies(:), edisp(:), erep(:), exbond(:), eint(:), eelec(:)
+   real(wp), allocatable :: energies(:), edisp(:), erep(:), exbond(:), eint(:), eelec(:), perr(:)
    real(wp), allocatable :: cn(:), dcndr(:, :, :), dcndL(:, :, :), dEdcn(:)
    real(wp), allocatable :: selfenergy(:), dsedcn(:), lattr(:, :), wdensity(:, :, :)
    type(integral_type) :: ints
    type(potential_type) :: pot
    type(container_cache), allocatable :: ccache, dcache, icache, hcache, rcache
    class(mixer_type), allocatable :: mixer
+   type(gambits_mixers_type), allocatable :: gambits_mixer(:)
    type(timer_type) :: timer
    type(error_type), allocatable :: error
    type(scf_info) :: info
@@ -236,8 +256,21 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    iscf = 0
    converged = .false.
    info = calc%variable_info()
-   call new_mixer(mixer, calc%max_iter, wfn%nspin*get_mixer_dimension(mol, calc%bas, info), &
+
+   if (calc%mixer_type == 0) then
+      allocate(perr(1))
+      call new_mixer(mixer, calc%max_iter, wfn%nspin*get_mixer_dimension(mol, calc%bas, info), &
       & calc%mixer_damping)
+   else if (calc%mixer_type == 1) then
+      allocate(gambits_mixer(1), perr(1))
+      call gambits_mixer(1)%setup(calc%mixer_type, mol, calc, wfn, info)
+   else if (calc%mixer_type == 2) then
+      allocate(gambits_mixer(wfn%nspin), perr(wfn%nspin))
+      do spin=1,wfn%nspin
+         call gambits_mixer(spin)%setup(calc%mixer_type, mol, calc, wfn, info)
+      end do
+   end if
+
    if (prlevel > 0) then
       call ctx%message(repeat("-", 60))
       call ctx%message("  cycle        total energy    energy error   density error")
@@ -245,26 +278,49 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
    do while(.not.converged .and. iscf < calc%max_iter)
       elast = sum(eelec)
-      call next_scf(iscf, mol, calc%bas, wfn, ctx%solver, mixer, info, &
-         & calc%coulomb, calc%dispersion, calc%interactions, ints, pot, &
+      
+      call next_scf(iscf, mol, calc%bas, wfn, ctx%solver, mixer, gambits_mixer, &
+         & info, calc%coulomb, calc%dispersion, calc%interactions, ints, pot, &
          & ccache, dcache, icache, eelec, error)
       econverged = abs(sum(eelec) - elast) < econv
-      pconverged = mixer%get_error() < pconv
+      
+      if (calc%mixer_type == 0) then
+         perr(1) = mixer%get_error()
+      else if (calc%mixer_type == 1) then
+         perr(1) = get_error(gambits_mixer(1)%currptr,iscf,elast)
+         perr(1) = perr(1) * sqrt(wfn%nspin*1.0)
+      else if (calc%mixer_type == 2) then
+         do spin=1,wfn%nspin
+            perr(spin) = get_error(gambits_mixer(spin)%currptr,iscf,elast)
+         end do
+         if (iscf.gt.1) perr(:) = perr(:) * (wfn%nspin*1.0)**2
+      end if
+      pconverged = maxval(abs(perr)) < pconv
       converged = econverged .and. pconverged
+
       if (prlevel > 0) then
          call ctx%message(format_string(iscf, "(i7)") // &
             & format_string(sum(eelec + energies), "(g24.13)") // &
             & escape(merge(ctx%terminal%green, ctx%terminal%red, econverged)) // &
             & format_string(sum(eelec) - elast, "(es16.7)") // &
             & escape(merge(ctx%terminal%green, ctx%terminal%red, pconverged)) // &
-            & format_string(mixer%get_error(), "(es16.7)") // &
+            & format_string(maxval(abs(perr)), "(es16.7)") // &
             & escape(ctx%terminal%reset))
       end if
+
       if (allocated(error)) then
          call ctx%set_error(error)
          exit
       end if
+
    end do
+   if (calc%mixer_type == 1) then
+      call gambits_mixer(1)%destroy()
+   else if (calc%mixer_type == 2) then
+      do spin=1,wfn%nspin
+         call gambits_mixer(spin)%destroy()
+      end do
+   end if
    if (prlevel > 0) then
       call ctx%message(repeat("-", 60))
       call ctx%message("")
