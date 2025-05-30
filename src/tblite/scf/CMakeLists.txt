@@ -15,7 +15,6 @@
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
 add_subdirectory("mixer")
-add_subdirectory("gambits_mixers")
 
 set(dir "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -26,6 +25,7 @@ list(
   "${dir}/mixer.f90"
   "${dir}/potential.f90"
   "${dir}/solver.f90"
+  "${dir}/utils.f90"
 )
 
 set(srcs "${srcs}" PARENT_SCOPE)

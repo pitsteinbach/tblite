@@ -251,7 +251,7 @@ subroutine set_calculator_mixer_damping_api(vctx, vcalc, damping) &
    end if
    call c_f_pointer(vcalc, calc)
 
-   calc%ptr%mixer_damping = damping
+   calc%ptr%mixer_info%broyden%damp = damping
 end subroutine set_calculator_mixer_damping_api
 
 

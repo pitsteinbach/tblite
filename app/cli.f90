@@ -25,6 +25,7 @@ module tblite_cli
    use tblite_features, only : get_tblite_feature
    use tblite_lapack_solver, only : lapack_algorithm
    use tblite_purification_solver_context, only : purification_type, purification_precision, purification_runmode
+   use tblite_scf_mixer_input, only : mixer_input
    use tblite_solvation, only : solvation_input, cpcm_input, alpb_input, &
       & cds_input, shift_input, solvent_data, get_solvent_data, solution_state, born_kernel
    use tblite_version, only : get_tblite_version
@@ -78,10 +79,8 @@ module tblite_cli
       real(wp) :: accuracy = 1.0_wp
       !> Maximum number of iterations for SCF
       integer, allocatable :: max_iter
-      !> Type of mixer
-      integer, allocatable :: mixer
-      !> Memory of the mixer
-      integer, allocatable :: mixer_memory
+      !> Mixing parameters
+      type(mixer_input), allocatable :: mixer
       !> Electronic temperature
       real(wp) :: etemp = 300.0_wp
       !> Electronic temperature for the guess (currently only CEH)
@@ -509,22 +508,56 @@ subroutine get_run_arguments(config, list, start, error)
       case("--mixer")
       iarg = iarg + 1
       call list%get(iarg, arg)
-      allocate(config%mixer)
-      call get_argument_as_int(arg, config%mixer, error)
+      if (.not. allocated(config%mixer)) allocate(config%mixer)
+      call get_argument_as_int(arg, config%mixer%type, error)
       if (allocated(error)) exit
-      if (config%mixer < 0 .or. config%mixer > 2) then
+      if (config%mixer%type < 0 .or. config%mixer%type > 2) then
          call fatal_error(error,"Mixer must be either 0 (native Broyden), 1 (GAMBITS Broyden) or 2 (GAMBITS DIIS)")
       end if
    
       case("--mixmem")
          iarg = iarg + 1
          call list%get(iarg, arg)
-         allocate(config%mixer_memory)
-         call get_argument_as_int(arg, config%mixer_memory, error)
+         if (.not. allocated(config%mixer)) allocate(config%mixer)
+         call get_argument_as_int(arg, config%mixer%broyden%memory, error)
+         call get_argument_as_int(arg, config%mixer%gambits_broyden%memory, error)
+         call get_argument_as_int(arg, config%mixer%gambits_diis%memory, error)
          if (allocated(error)) exit
-         if (config%mixer_memory <= 0) then
+         if (config%mixer%broyden%memory <= 0) then
             call fatal_error(error,"Mixmem must be larger than 0")
          end if
+
+      case("--mixprec")
+         iarg = iarg + 1
+         call list%get(iarg, arg)
+         if (.not. allocated(config%mixer)) allocate(config%mixer)
+         call get_argument_as_int(arg, config%mixer%gambits_diis%prec, error)
+         if (allocated(error)) exit
+         if (config%mixer%gambits_diis%prec < 0 .or. config%mixer%gambits_diis%prec > 1) then
+            call fatal_error(error,"Mixprec must be either 0 (FP32) or 1 (FP64)")
+      end if
+
+      case("--mixrunmode")
+         iarg = iarg + 1
+         call list%get(iarg, arg)
+         if (.not. allocated(config%mixer)) allocate(config%mixer)
+         call get_argument_as_int(arg, config%mixer%gambits_diis%runmode, error)
+         if (allocated(error)) exit
+         if (config%mixer%gambits_diis%runmode < 0 .or. config%mixer%gambits_diis%runmode > 2) then
+            call fatal_error(error,"Mixrunmode must be either 0 (size-dependent), 1 (CPU), or 2 (GPU)")
+      end if
+
+      case("--mixdamping")
+         iarg = iarg + 1
+         call list%get(iarg, arg)
+         if (.not. allocated(config%mixer)) allocate(config%mixer)
+         call get_argument_as_real(arg, config%mixer%broyden%damp, error)
+         call get_argument_as_real(arg, config%mixer%gambits_broyden%damp, error)
+         call get_argument_as_real(arg, config%mixer%gambits_diis%damp, error)
+         if (allocated(error)) exit
+         if (config%mixer%broyden%damp < 0 .or. config%mixer%broyden%damp > 1) then
+            call fatal_error(error,"Mixdamping must be between 0 and 1")
+      end if
 
       case("--solver")
          iarg = iarg + 1

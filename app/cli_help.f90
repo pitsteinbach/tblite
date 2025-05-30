@@ -127,7 +127,10 @@ module tblite_cli_help
       "                           DMP solvers: sp2, sp2-accel, trs4"//nl//&
       "      --mixer <int>        Set the type of convergence accelerator (mixer) possible options:"//nl//&
       "                           native broyden (0, default), GAMBITS Broyden (1), GAMBITS DIIS (2)."//nl//&
-      "      --mixmem <int>       Set the number of past iterations to be used by the mixer."//nl//&
+      "      --mixmem <int>       Number of past iterations to be used by the mixer."//nl//&
+      "      --mixprec <int>      Precision to be used by the mixer: FP32 (0) or FP64 (1)"//nl//&
+      "      --mixrunmode <int>   Mixer runmode: size-dependent (0), CPU (1) or GPU (2)"//nl//&
+      "      --mixdamping <real>  Damping factor for mixing"//nl//&
       "      --efield <real>,<real>,<real>"//nl//&
       "                           Homogeneous electric field in V/Å."//nl//&
       "      --alpb <name>        Use analytical linearized Poisson-Boltzmann (ALPB) solvation model."//nl//&

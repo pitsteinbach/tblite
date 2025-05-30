@@ -15,7 +15,6 @@
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
 subdir('mixer')
-subdir('gambits_mixers')
 
 srcs += files(
   'info.f90',
@@ -23,4 +22,5 @@ srcs += files(
   'mixer.f90',
   'potential.f90',
   'solver.f90',
+  'utils.f90',
 )

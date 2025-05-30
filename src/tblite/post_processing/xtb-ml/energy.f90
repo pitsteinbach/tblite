@@ -23,7 +23,7 @@ module tblite_xtbml_energy_features
    use tblite_disp_d4, only : d4_dispersion, new_d4_dispersion
    use tblite_container, only : container_type, container_cache
    use tblite_integral_type, only : integral_type
-   use tblite_scf_iterator, only : get_electronic_energy, reduce
+   use tblite_scf, only : get_electronic_energy, reduce
    use tblite_wavefunction_type, only : wavefunction_type
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_coulomb, only : tb_coulomb

@@ -39,6 +39,7 @@ module tblite_xtb_calculator
    use tblite_param, only : param_record
    use tblite_repulsion, only : new_repulsion
    use tblite_repulsion_effective, only : tb_repulsion
+   use tblite_scf_mixer_input, only : mixer_input
    use tblite_xtb_coulomb, only : tb_coulomb
    use tblite_xtb_h0, only : tb_hamiltonian, new_hamiltonian
    use tblite_xtb_spec, only : tb_h0spec
@@ -47,9 +48,6 @@ module tblite_xtb_calculator
 
    public :: new_xtb_calculator
    public :: param_h0spec
-
-   !> Default value for self-consistent iteration mixing
-   real(wp), parameter :: mixer_damping_default = 0.4_wp
 
    !> Default maximum number of self-consistent iterations
    integer, parameter :: max_iter_default = 250
@@ -73,7 +71,7 @@ module tblite_xtb_calculator
       !> London-dispersion interaction
       class(dispersion_type), allocatable :: dispersion
       !> Parameter for self-consistent iteration mixing
-      real(wp) :: mixer_damping = mixer_damping_default
+      type(mixer_input) :: mixer_info
       !> Maximum number of self-consistent iteractions
       integer :: max_iter = max_iter_default
       !> Store calculated integral intermediates
@@ -82,10 +80,6 @@ module tblite_xtb_calculator
       type(container_list), allocatable :: interactions
       !> string with method or "custom"
       character(len=:), allocatable :: method
-      !> Type of self-consistent iteration mixing (0: native Broyden, 1: gambits Broyden, 2: gambits DIIS)
-      integer :: mixer_type = 0
-      !> Memory of the mixer
-      integer :: mixer_mem = 250
    contains
       !> Get information about density dependent quantities used in the energy
       procedure :: variable_info
