@@ -88,7 +88,7 @@ contains
 
       select case(input%type)
        case(0)
-         allocate(self%type(1),source=input%type)
+         self%type = [(input%type, i=1,1)]
          block
             type(broyden_mixer), allocatable :: mixer
             allocate(mixer)
@@ -98,7 +98,7 @@ contains
          end block
 
        case(1)
-         allocate(self%type(1),source=input%type)
+         self%type = [(input%type, i=1,1)]
          block
             type(gambits_broyden_type), allocatable :: mixer
             allocate(mixer)
@@ -109,7 +109,7 @@ contains
          self%type = 1
 
        case(2)
-         allocate(self%type(nspin),source=input%type)
+         self%type = [(input%type, i=1,nspin)]
          block
             type(gambits_diis_type), allocatable :: mixer(:)
             allocate(mixer(nspin))
