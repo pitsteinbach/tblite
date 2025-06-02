@@ -85,6 +85,14 @@ contains
       real(wp) :: ts
       integer :: spin
 
+      if (.not. allocated(mixer%type)) then
+         print *, "Error: mixer%type is not allocated"
+         stop
+      end if
+      if (size(mixer%type) < 1) then
+         print *, "Error: mixer%type has size <", size(mixer%type)
+         stop
+      end if
       if (iscf > 0 .and. (mixer%type(1) == 0 .or. mixer%type(1) == 1)) then
          call mixer%next_mixer(iscf, wfn, error)
          if (allocated(error)) return
