@@ -254,8 +254,10 @@ contains
       converged = .false.
       info = calc%variable_info()
 
+      write(*,*) "Before new mixer"
       call new_mixer(mixers, calc%mixer_info, get_mixer_dimension(mol, calc%bas, info), &
       & calc%bas%nao, wfn%nspin, ints%overlap, info)
+      write(*,*) "After new mixer"
 
       if (prlevel > 0) then
          call ctx%message(repeat("-", 60))

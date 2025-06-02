@@ -58,7 +58,7 @@ module tblite_scf_mixer_input
    !> Input parameters for electronic mixer
    type, public :: mixer_input
       !> Mixer type
-      integer :: type
+      integer :: type = 0
       !> Input for Broyden mixer
       type(broyden_input) :: broyden
       !> Input for GAMBITS Broyden mixer
