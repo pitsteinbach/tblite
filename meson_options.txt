@@ -64,7 +64,6 @@ option(
   'gpu',
   type: 'boolean',
   value: false,
-  yield: true,
   description: 'Compile with cuBLAS wrapper for capable GPUs only.',
 )
 
