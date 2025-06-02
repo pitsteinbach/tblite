@@ -88,7 +88,6 @@ contains
 
       select case(input%type)
        case(0)
-         self%type = [(input%type, i=1,1)]
          block
             type(broyden_mixer), allocatable :: mixer
             allocate(mixer)
@@ -96,9 +95,10 @@ contains
             mixer%info = info
             allocate(self%mixer(1),source=mixer)
          end block
+         allocate(self%type(1))
+         self%type(1) = 0
 
        case(1)
-         self%type = [(input%type, i=1,1)]
          block
             type(gambits_broyden_type), allocatable :: mixer
             allocate(mixer)
@@ -106,10 +106,10 @@ contains
             mixer%info = info
             allocate(self%mixer(1),source=mixer)
          end block
-         self%type = 1
+         allocate(self%type(1))
+         self%type(1) = 1
 
        case(2)
-         self%type = [(input%type, i=1,nspin)]
          block
             type(gambits_diis_type), allocatable :: mixer(:)
             allocate(mixer(nspin))
@@ -122,6 +122,8 @@ contains
             end do
             allocate(self%mixer,source=mixer)
          end block
+         allocate(self%type(nspin))
+         self%type(1) = 2
       end select
 
    end subroutine new_mixer
