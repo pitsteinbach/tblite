@@ -80,7 +80,6 @@ contains
 
       integer :: prec, i
 
-      write(*,*) "In new_mixer, with type"
       if (wp == sp) then
          prec = 0
       else if (wp == dp) then
@@ -89,7 +88,6 @@ contains
 
       select case(input%type)
        case(0)
-         write(*,*) "In case 0"
          block
             type(broyden_mixer), allocatable :: mixer
             allocate(mixer)
@@ -99,7 +97,6 @@ contains
          end block
          allocate(self%type(1))
          self%type(1) = 0
-         write(*,*) "End of case 0"
        case(1)
          block
             type(gambits_broyden_type), allocatable :: mixer
