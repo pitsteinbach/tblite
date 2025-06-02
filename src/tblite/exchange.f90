@@ -1,6 +1,5 @@
 module tblite_exchange
    use mctc_env, only : wp
-   use tblite_mulliken_kfock, only : mulliken_kfock_type, new_mulliken_exchange
    use tblite_mulliken_kfock_cpp, only : mulliken_kfock_type_cpp, new_mulliken_exchange
    use mctc_io, only : structure_type
    use tblite_param_exchange, only : exchange_record
