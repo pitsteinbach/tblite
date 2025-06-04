@@ -20,8 +20,6 @@
 !> Declaration of the abstract base class for electronic solvers
 module tblite_scf_solver
    use mctc_env, only : sp, dp, error_type, wp
-   use tblite_blas, only : gemm
-   use tblite_wavefunction_type, only : wavefunction_type
    implicit none
    private
 
@@ -52,4 +50,5 @@ module tblite_scf_solver
       end subroutine solve_dp
    end interface
 
+   
 end module tblite_scf_solver

@@ -152,6 +152,7 @@ subroutine get_density_matrix(focc, coeff, pmat)
    call gemm(scratch, coeff, pmat, transb='t')
 end subroutine get_density_matrix
 
+
 !> Split an real occupation number into alpha and beta space.
 !>
 !> This routine does not perform any checks on the condition

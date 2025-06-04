@@ -79,9 +79,9 @@ contains
       real(wp) :: dipole(3)
       ! Integral container
       type(integral_type) :: ints
-      !> Electronic solver
+      ! Electronic solver
       class(solver_type), allocatable :: solver
-      !> Adjacency list
+      ! Adjacency list
       type(adjacency_list) :: list
       ! Potential type
       type(potential_type) :: pot
@@ -236,6 +236,7 @@ contains
             call ctx%message("")
          end if
       end block
+      
    end subroutine ceh_singlepoint
 
 end module tblite_ceh_singlepoint

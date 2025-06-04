@@ -172,6 +172,7 @@ subroutine set_context_verbosity_api(vctx, verbosity) &
    end if
 end subroutine set_context_verbosity_api
 
+
 !> Delete context object
 subroutine delete_context_api(vctx) &
       & bind(C, name=namespace//"delete_context")
@@ -182,6 +183,7 @@ subroutine delete_context_api(vctx) &
 
    if (c_associated(vctx)) then
       call c_f_pointer(vctx, ctx)
+      
       deallocate(ctx)
       vctx = c_null_ptr
    end if

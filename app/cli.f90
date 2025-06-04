@@ -440,7 +440,6 @@ subroutine get_run_arguments(config, list, start, error)
          allocate(solvent)
          solvent = get_solvent_data(arg)
          if (solvent%eps <= 0.0_wp) then
-            solvent_not_found = .true. 
             call get_argument_as_real(arg, solvent%eps, error)
          end if
          if (allocated(error)) exit
@@ -565,8 +564,6 @@ subroutine get_run_arguments(config, list, start, error)
             exit
          case("gvd")
             config%solver = lapack_algorithm%gvd
-         case("gvd-gpu")
-            config%solver = lapack_algorithm%gvd_cusolver
          case("gvr")
             config%solver = lapack_algorithm%gvr
          end select

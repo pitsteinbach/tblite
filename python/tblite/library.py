@@ -113,6 +113,7 @@ def context_check(func):
 
     return handle_context_error
 
+
 def _delete_context(context) -> None:
     """Delete a tblite context handler object"""
     ptr = ffi.new("tblite_context *")

@@ -55,7 +55,7 @@ module tblite_scf_potential
       !> Position derivative of shell-resolved charge-dependent potential shift
       real(wp), allocatable :: dvshdr(:, :, :, :)
       !> Lattice vector derivative of shell-resolved charge-dependent potential shift
-      real(wp), allocatable :: dvshdL(:, :, :, :) 
+      real(wp), allocatable :: dvshdL(:, :, :, :)
    contains
       !> Reset the density dependent potential
       procedure :: reset
@@ -139,7 +139,6 @@ subroutine add_pot_to_h1(bas, ints, pot, h1)
    call add_vmp_to_h1(bas, ints%quadrupole, pot%vqp, h1)
 
    call magnet_to_updown(h1)
-
 end subroutine add_pot_to_h1
 
 !> Expand an atom-resolved potential shift to a shell-resolved potential shift
@@ -187,6 +186,7 @@ subroutine add_vsh_to_vao(bas, vsh, vao)
       end do
    end do
 end subroutine add_vsh_to_vao
+
 
 !> Add a charge-dependent potential to the Hamiltonian
 subroutine add_vao_to_h1(bas, sint, vao, h1)
