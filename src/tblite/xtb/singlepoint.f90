@@ -35,6 +35,7 @@ module tblite_xtb_singlepoint
    use tblite_results, only : results_type
    use tblite_scf, only : get_mixer_dimension, new_mixer, new_potential, &
    next_scf, mixers_type, potential_type, scf_info
+   use tblite_scf_solver, only : solver_type
    use tblite_timer, only : timer_type, format_time
    use tblite_wavefunction, only : wavefunction_type, &
    & get_alpha_beta_occupation, &
@@ -113,6 +114,7 @@ contains
       integer :: prlevel
       real(wp) :: econv, pconv, cutoff, elast, nel
       real(wp), allocatable :: energies(:), edisp(:), erep(:), exbond(:), eint(:), eelec(:)
+
       real(wp), allocatable :: cn(:), dcndr(:, :, :), dcndL(:, :, :), dEdcn(:)
       real(wp), allocatable :: selfenergy(:), dsedcn(:), lattr(:, :), wdensity(:, :, :)
       type(integral_type) :: ints
@@ -122,6 +124,7 @@ contains
       type(timer_type) :: timer
       type(error_type), allocatable :: error
       type(scf_info) :: info
+      class(solver_type), allocatable :: solver
       type(adjacency_list) :: list
       type(container_cache), allocatable :: cache_list(:)
 
@@ -138,7 +141,8 @@ contains
       econv = 1.e-6_wp*accuracy
       pconv = 2.e-5_wp*accuracy
 
-      call ctx%new_solver(calc%bas%nao)
+      call ctx%new_solver(solver, calc%bas%nao)
+      
       grad = present(gradient) .and. present(sigma)
 
       allocate(energies(mol%nat), source=0.0_wp)
@@ -264,7 +268,7 @@ contains
       end if
       do while(.not.converged .and. iscf < calc%max_iter)
          elast = sum(eelec)
-         call next_scf(iscf, mol, calc%bas, wfn, ctx%solver, mixers, &
+         call next_scf(iscf, mol, calc%bas, wfn, solver, mixers, &
          & info, calc%coulomb, calc%dispersion, calc%interactions, ints, pot, &
          & ccache, dcache, icache, eelec, error)
          econverged = abs(sum(eelec) - elast) < econv
@@ -301,6 +305,10 @@ contains
          call ctx%message(label_total // format_string(sum(energies), real_format) // " Eh")
          call ctx%message("")
       end if
+
+      call ctx%delete_solver(solver)
+      if (ctx%failed()) return
+
       if (grad) then
          if (allocated(calc%coulomb)) then
             call timer%push("coulomb")
@@ -324,7 +332,10 @@ contains
          allocate(dEdcn(mol%nat))
          dEdcn(:) = 0.0_wp
          allocate(wdensity(calc%bas%nao, calc%bas%nao, wfn%nspin))
-         call ctx%solver%get_energy_w_density_matrix(wfn, wdensity)
+         do spin = 1, wfn%nspin
+            tmp = wfn%focc(:, spin) * wfn%emo(:, spin)
+            call get_density_matrix(tmp, wfn%coeff(:, :, spin), wdensity(:, :, spin))
+         end do
          call updown_to_magnet(wfn%density)
          call updown_to_magnet(wdensity)
          call get_hamiltonian_gradient(mol, lattr, list, calc%bas, calc%h0, selfenergy, &
@@ -391,8 +402,6 @@ contains
          call fatal_error(error, "SCF not converged in "//format_string(iscf, '(i0)')//" cycles")
          call ctx%set_error(error)
       end if
-      call ctx%solver%reset()
-      if (.not. ctx%reuse_solver) call ctx%delete_solver()
    end subroutine xtb_singlepoint
 
 end module tblite_xtb_singlepoint
