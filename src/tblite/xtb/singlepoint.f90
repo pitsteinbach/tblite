@@ -38,7 +38,7 @@ module tblite_xtb_singlepoint
    use tblite_scf_solver, only : solver_type
    use tblite_timer, only : timer_type, format_time
    use tblite_wavefunction, only : wavefunction_type, &
-   & get_alpha_beta_occupation, &
+   & get_alpha_beta_occupation, get_density_matrix, &
    & magnet_to_updown, updown_to_magnet
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
@@ -118,6 +118,7 @@ contains
       real(wp), allocatable :: cn(:), dcndr(:, :, :), dcndL(:, :, :), dEdcn(:)
       real(wp), allocatable :: selfenergy(:), dsedcn(:), lattr(:, :), wdensity(:, :, :)
       type(integral_type) :: ints
+      real(wp), allocatable :: tmp(:)
       type(potential_type) :: pot
       type(container_cache), allocatable :: ccache, dcache, icache, hcache, rcache
       type(mixers_type) :: mixers
@@ -128,7 +129,7 @@ contains
       type(adjacency_list) :: list
       type(container_cache), allocatable :: cache_list(:)
 
-      integer :: iscf
+      integer :: iscf, spin
 
       call timer%push("total")
 
