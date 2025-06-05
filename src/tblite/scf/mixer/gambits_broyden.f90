@@ -19,14 +19,14 @@
 
 !> Implementing Broyden mixing via GAMBITS
 module tblite_scf_gambits_broyden
-   use mctc_env, only : error_type
+   use mctc_env, only : error_type, dp, sp
    use tblite_scf_mixer_type, only : mixer_type
    use tblite_wavefunction, only : wavefunction_type
    use iso_c_binding
    implicit none
    private
 
-   public :: gambits_broyden_type
+   public :: gambits_broyden_type, new_gambits_broyden
 
    !> Electronic mixer using modified Broyden scheme via GAMBITS
    type, extends(mixer_type) :: gambits_broyden_type
@@ -48,6 +48,15 @@ module tblite_scf_gambits_broyden
    end type gambits_broyden_type
 
    interface
+         type(c_ptr) function c_new_broyden(ndim, memory, alpha, nao, prec) bind(C,name="SetupBroyden")
+         use iso_c_binding
+         integer(c_int), value :: ndim
+         integer(c_int), value :: memory
+         real(c_double), value :: alpha
+         integer(c_int), value :: nao
+         integer(c_int), value :: prec
+      end function c_new_broyden
+
       subroutine set_mixer_data_dp(mixer,target,size) bind(C,name="SetDataDP")
          use iso_c_binding
          type(c_ptr), value, intent(in) :: mixer
@@ -127,138 +136,146 @@ module tblite_scf_gambits_broyden
 
 contains
 
-   !> Set the vector to mix
-   subroutine set_broyden_dp(self, qvec)
-      use mctc_env, only : dp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(dp), intent(in) :: qvec(:)
+!> Create a new instance of the GAMBITS Broyden mixer
+subroutine new_gambits_broyden(self, ndim, memory, alpha, nao, prec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(out) :: self
+   !> Number of dimensions
+   integer, intent(in) :: ndim
+   !> Memory size for the mixer
+   integer, intent(in) :: memory
+   !> Damping parameter
+   real(dp), intent(in) :: alpha
+   !> Number of atomic orbitals
+   integer, intent(in) :: nao
+   !> Precision (0: single, 1: double)
+   integer, intent(in) :: prec
 
-      call set_mixer_data_dp(self%ptr, qvec, size(qvec))
-   end subroutine set_broyden_dp
+   self%ptr = c_new_broyden(ndim, memory, alpha, nao, prec)
 
-   subroutine set_broyden_sp(self, qvec)
-      use mctc_env, only : sp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(sp), intent(in) :: qvec(:)
+end subroutine new_gambits_broyden
 
-      call set_mixer_data_sp(self%ptr, qvec, size(qvec))
-   end subroutine set_broyden_sp
+!> Set the vector to mix
+subroutine set_broyden_dp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(dp), intent(in) :: qvec(:)
 
+   call set_mixer_data_dp(self%ptr, qvec, size(qvec))
+end subroutine set_broyden_dp
+
+subroutine set_broyden_sp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(sp), intent(in) :: qvec(:)
+
+   call set_mixer_data_sp(self%ptr, qvec, size(qvec))
+end subroutine set_broyden_sp
 
 !> Get the differences of the mixed vector
-   subroutine diff_broyden_dp(self, qvec)
-      use mctc_env, only : dp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(dp), intent(in) :: qvec(:)
+subroutine diff_broyden_dp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(dp), intent(in) :: qvec(:)
 
-      call diff_mixer_data_dp(self%ptr, qvec, size(qvec))
-   end subroutine diff_broyden_dp
+   call diff_mixer_data_dp(self%ptr, qvec, size(qvec))
+end subroutine diff_broyden_dp
 
-   subroutine diff_broyden_sp(self, qvec)
-      use mctc_env, only : sp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(sp), intent(in) :: qvec(:)
+subroutine diff_broyden_sp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(sp), intent(in) :: qvec(:)
 
-      call diff_mixer_data_sp(self%ptr, qvec, size(qvec))
-   end subroutine diff_broyden_sp
+   call diff_mixer_data_sp(self%ptr, qvec, size(qvec))
+end subroutine diff_broyden_sp
 
-   !> Get the mixed vector
-   subroutine get_broyden_dp(self, qvec)
-      use mctc_env, only : dp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(dp), intent(out) :: qvec(:)
+!> Get the mixed vector
+subroutine get_broyden_dp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(dp), intent(out) :: qvec(:)
 
-      call get_mixer_data_dp(self%ptr, qvec, size(qvec))
-   end subroutine get_broyden_dp
+   call get_mixer_data_dp(self%ptr, qvec, size(qvec))
+end subroutine get_broyden_dp
 
-   subroutine get_broyden_sp(self, qvec)
-      use mctc_env, only : sp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> Density vector
-      real(sp), intent(out) :: qvec(:)
+subroutine get_broyden_sp(self, qvec)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> Density vector
+   real(sp), intent(out) :: qvec(:)
 
-      call get_mixer_data_sp(self%ptr, qvec, size(qvec))
-   end subroutine get_broyden_sp
+   call get_mixer_data_sp(self%ptr, qvec, size(qvec))
+end subroutine get_broyden_sp
 
-   subroutine next_broyden_sp(self, iscf, wfn, error)
-      use mctc_env, only : sp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> SCF Iteration
-      integer, intent(in) :: iscf
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(inout) :: wfn
-      !> Error handling
-      type(error_type), allocatable, intent(out) :: error
+subroutine next_broyden_sp(self, iscf, wfn, error)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> SCF Iteration
+   integer, intent(in) :: iscf
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(inout) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
-      real(sp), allocatable,target :: density(:,:)
-      real(sp), pointer :: dptr(:)
+   real(sp), allocatable,target :: density(:,:)
+   real(sp), pointer :: dptr(:)
 
-      allocate(density(size(wfn%density,1),size(wfn%density,2)))
-      dptr(1:size(density)) => density
-      call next_broyden_data_sp(self%ptr, iscf, dptr)
-   end subroutine next_broyden_sp
+   allocate(density(size(wfn%density,1),size(wfn%density,2)))
+   dptr(1:size(density)) => density
+   call next_broyden_data_sp(self%ptr, iscf, dptr)
+end subroutine next_broyden_sp
 
-   subroutine next_broyden_dp(self, iscf, wfn, error)
-      use mctc_env, only : dp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
-      !> SCF Iteration
-      integer, intent(in) :: iscf
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(inout) :: wfn
-      !> Error handling
-      type(error_type), allocatable, intent(out) :: error
+subroutine next_broyden_dp(self, iscf, wfn, error)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
+   !> SCF Iteration
+   integer, intent(in) :: iscf
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(inout) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
-      real(dp), allocatable,target :: density(:,:)
-      real(dp), pointer :: dptr(:)
+   real(dp), allocatable,target :: density(:,:)
+   real(dp), pointer :: dptr(:)
 
-      allocate(density(size(wfn%density,1),size(wfn%density,2)))
-      dptr(1:size(density)) => density
-      call next_broyden_data_dp(self%ptr, iscf, dptr)
-   end subroutine next_broyden_dp
+   allocate(density(size(wfn%density,1),size(wfn%density,2)))
+   dptr(1:size(density)) => density
+   call next_broyden_data_dp(self%ptr, iscf, dptr)
+end subroutine next_broyden_dp
 
-   !> Get the density error
-   pure function get_error_dp(self, iscf) result(error)
-      use mctc_env, only : dp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(in) :: self
-      !> Current iteration
-      integer, intent(in) :: iscf
+!> Get the density error
+pure function get_error_dp(self, iscf) result(error)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(in) :: self
+   !> Current iteration
+   integer, intent(in) :: iscf
 
-      real(dp) :: error
+   real(dp) :: error
 
-      error = get_broyden_error_dp(self%ptr, iscf, error)
-   end function get_error_dp
+   error = get_broyden_error_dp(self%ptr, iscf, error)
+end function get_error_dp
 
-   pure function get_error_sp(self, iscf) result(error)
-      use mctc_env, only : sp
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(in) :: self
-      !> Current iteration
-      integer, intent(in) :: iscf
+pure function get_error_sp(self, iscf) result(error)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(in) :: self
+   !> Current iteration
+   integer, intent(in) :: iscf
 
-      real(sp) :: error
+   real(sp) :: error
 
-      error = get_broyden_error_sp(self%ptr, iscf, error)
-   end function get_error_sp
+   error = get_broyden_error_sp(self%ptr, iscf, error)
+end function get_error_sp
 
-   subroutine cleanup(self)
-      !> Instance of the GAMBITS Broyden mixer
-      class(gambits_broyden_type), intent(inout) :: self
+subroutine cleanup(self)
+   !> Instance of the GAMBITS Broyden mixer
+   class(gambits_broyden_type), intent(inout) :: self
 
-      call destroy_mixer(self%ptr)
-   end subroutine cleanup
+   call destroy_mixer(self%ptr)
+end subroutine cleanup
 
 end module tblite_scf_gambits_broyden

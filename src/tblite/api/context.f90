@@ -183,7 +183,6 @@ subroutine delete_context_api(vctx) &
 
    if (c_associated(vctx)) then
       call c_f_pointer(vctx, ctx)
-      
       deallocate(ctx)
       vctx = c_null_ptr
    end if

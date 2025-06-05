@@ -20,8 +20,10 @@
 !> Base class for electronic mixing
 module tblite_scf_mixer_type
    use mctc_env, only : error_type, wp
+   use tblite_basis_type, only : basis_type
+   use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved, orbital_resolved
+   use tblite_scf_utils, only : get_qat_from_qsh
    use tblite_wavefunction, only : wavefunction_type
-   use tblite_scf_info, only : scf_info
    implicit none
    private
 
@@ -58,7 +60,7 @@ module tblite_scf_mixer_type
       !> Get error metric from mixing
       procedure(get_error), deferred :: get_error
       !> Destroy mixer
-      procedure(cleanup), deferred :: cleanup
+      procedure :: cleanup
    end type mixer_type
 
    abstract interface
@@ -112,13 +114,6 @@ module tblite_scf_mixer_type
          !> Error metric
          real(wp) :: error
       end function get_error
-
-      !> Cleanup
-      subroutine cleanup(self)
-         import :: mixer_type, error_type
-         !> Instance of the electronic mixer
-         class(mixer_type), intent(inout) :: self
-      end subroutine cleanup
    end interface
 
 
@@ -145,251 +140,250 @@ module tblite_scf_mixer_type
 contains
 
 !> Set new density from 2D array
-   subroutine set_2d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(in), target :: qvec(:, :)
+subroutine set_2d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(in), target :: qvec(:, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%set(qptr)
-   end subroutine set_2d
+   qptr(1:size(qvec)) => qvec
+   call self%set(qptr)
+end subroutine set_2d
 
 !> Set new density from 3D array
-   subroutine set_3d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(in), target :: qvec(:, :, :)
+subroutine set_3d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(in), target :: qvec(:, :, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%set(qptr)
-   end subroutine set_3d
+   qptr(1:size(qvec)) => qvec
+   call self%set(qptr)
+end subroutine set_3d
 
 !> Set difference between new and old density from 2D array
-   subroutine diff_2d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(in), target :: qvec(:, :)
+subroutine diff_2d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(in), target :: qvec(:, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%diff(qptr)
-   end subroutine diff_2d
+   qptr(1:size(qvec)) => qvec
+   call self%diff(qptr)
+end subroutine diff_2d
 
 !> Set difference between new and old density from 3D array
-   subroutine diff_3d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(in), target :: qvec(:, :, :)
+subroutine diff_3d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(in), target :: qvec(:, :, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%diff(qptr)
-   end subroutine diff_3d
+   qptr(1:size(qvec)) => qvec
+   call self%diff(qptr)
+end subroutine diff_3d
 
 !> Get density as 2D array
-   subroutine get_2d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(out), target :: qvec(:, :)
+subroutine get_2d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(out), target :: qvec(:, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%get(qptr)
-   end subroutine get_2d
+   qptr(1:size(qvec)) => qvec
+   call self%get(qptr)
+end subroutine get_2d
 
 !> Get density as 3D array
-   subroutine get_3d(self, qvec)
-      !> Instance of the electronic mixer
-      class(mixer_type), intent(inout) :: self
-      !> Density vector
-      real(wp), contiguous, intent(out), target :: qvec(:, :, :)
+subroutine get_3d(self, qvec)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> Density vector
+   real(wp), contiguous, intent(out), target :: qvec(:, :, :)
 
-      real(wp), pointer :: qptr(:)
+   real(wp), pointer :: qptr(:)
 
-      qptr(1:size(qvec)) => qvec
-      call self%get(qptr)
-   end subroutine get_3d
+   qptr(1:size(qvec)) => qvec
+   call self%get(qptr)
+end subroutine get_3d
+
+!> Cleanup
+subroutine cleanup(self)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+end subroutine cleanup
+
+subroutine next_mixer(self, iscf, wfn, error)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
+   !> Iteration counter
+   integer, intent(in) :: iscf
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(inout) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+
+   integer :: channel
+
+   do channel = 1, size(self%mixer)
+      call self%mixer(channel)%next(iscf, wfn, error)
+   end do
+end subroutine next_mixer
 
 
-   subroutine next_mixer(self, iscf, wfn, error)
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(inout) :: self
-      !> Iteration counter
-      integer, intent(in) :: iscf
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(inout) :: wfn
-      !> Error handling
-      type(error_type), allocatable, intent(out) :: error
+pure function get_error_mixer(self, iscf) result(error)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(in) :: self
+   !> Current iteration
+   integer, intent(in) :: iscf
 
-      integer :: channel
+   integer :: channel
+   real(wp) :: error
+   real(wp) :: perr(size(self%type))
 
-      do channel = 1, size(self%mixer)
-         call self%mixer(channel)%next(iscf, wfn, error)
-      end do
-   end subroutine next_mixer
+   do channel = 1, size(self%mixer)
+      perr(channel) = self%mixer(channel)%get_error(iscf)
+   end do
 
+   error = maxval(abs(perr))
+end function get_error_mixer
 
-   pure function get_error_mixer(self, iscf) result(error)
-      use mctc_env, only : wp
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(in) :: self
-      !> Current iteration
-      integer, intent(in) :: iscf
+subroutine cleanup_mixer(self)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
 
-      integer :: channel
-      real(wp) :: error
-      real(wp) :: perr(size(self%type))
+   integer :: i
 
-      do channel = 1, size(self%mixer)
-         perr(channel) = self%mixer(channel)%get_error(iscf)
-      end do
+   do i = 1, size(self%mixer)
+      call self%mixer(i)%cleanup()
+   end do
+end subroutine cleanup_mixer
 
-      error = maxval(abs(perr))
-   end function get_error_mixer
+subroutine set_mixer(self, wfn)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(in) :: wfn
 
-   subroutine cleanup_mixer(self)
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(inout) :: self
+   integer :: channel
 
-      integer :: i
+   do channel = 1, size(self%mixer)
+      select case(self%mixer(channel)%info%charge)
+         case(atom_resolved)
+         call self%mixer(channel)%set(wfn%qat)
+         case(shell_resolved)
+         call self%mixer(channel)%set(wfn%qsh)
+      end select
 
-      do i = 1, size(self%mixer)
-         call self%mixer(i)%cleanup()
-      end do
-   end subroutine cleanup_mixer
+      select case(self%mixer(channel)%info%dipole)
+         case(atom_resolved)
+         call self%mixer(channel)%set(wfn%dpat)
+      end select
 
-   subroutine set_mixer(self, wfn)
-      use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(inout) :: self
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(in) :: wfn
+      select case(self%mixer(channel)%info%quadrupole)
+         case(atom_resolved)
+         call self%mixer(channel)%set(wfn%qpat)
+      end select
 
-      integer :: channel
+      select case(self%mixer(channel)%info%density)
+         case(orbital_resolved)
+         call self%mixer(channel)%set(wfn%density(:,:,channel))
+      end select
 
-      do channel = 1, size(self%mixer)
-         select case(self%mixer(channel)%info%charge)
-          case(atom_resolved)
-            call self%mixer(channel)%set(wfn%qat)
-          case(shell_resolved)
-            call self%mixer(channel)%set(wfn%qsh)
-         end select
+      select case(self%mixer(channel)%info%fock)
+         case(orbital_resolved)
+         call self%mixer(channel)%set(wfn%coeff(:,:,channel))
+      end select
+   end do
+end subroutine set_mixer
 
-         select case(self%mixer(channel)%info%dipole)
-          case(atom_resolved)
-            call self%mixer(channel)%set(wfn%dpat)
-         end select
+subroutine diff_mixer(self, wfn)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(in) :: wfn
 
-         select case(self%mixer(channel)%info%quadrupole)
-          case(atom_resolved)
-            call self%mixer(channel)%set(wfn%qpat)
-         end select
+   integer :: channel
 
-         select case(self%mixer(channel)%info%density)
-          case(orbital_resolved)
-            call self%mixer(channel)%set(wfn%density(:,:,channel))
-         end select
+   do channel = 1, size(self%mixer)
+      select case(self%mixer(channel)%info%charge)
+         case(atom_resolved)
+         call self%mixer(channel)%diff(wfn%qat)
+         case(shell_resolved)
+         call self%mixer(channel)%diff(wfn%qsh)
+      end select
 
-         select case(self%mixer(channel)%info%fock)
-          case(orbital_resolved)
-            call self%mixer(channel)%set(wfn%coeff(:,:,channel))
-         end select
-      end do
-   end subroutine set_mixer
+      select case(self%mixer(channel)%info%dipole)
+         case(atom_resolved)
+         call self%mixer(channel)%diff(wfn%dpat)
+      end select
 
-   subroutine diff_mixer(self, wfn)
-      use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(inout) :: self
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(in) :: wfn
+      select case(self%mixer(channel)%info%quadrupole)
+         case(atom_resolved)
+         call self%mixer(channel)%diff(wfn%qpat)
+      end select
 
-      integer :: channel
+      select case(self%mixer(channel)%info%density)
+         case(orbital_resolved)
+         call self%mixer(channel)%diff(wfn%density(:,:,channel))
+      end select
 
-      do channel = 1, size(self%mixer)
-         select case(self%mixer(channel)%info%charge)
-          case(atom_resolved)
-            call self%mixer(channel)%diff(wfn%qat)
-          case(shell_resolved)
-            call self%mixer(channel)%diff(wfn%qsh)
-         end select
+      select case(self%mixer(channel)%info%fock)
+         case(orbital_resolved)
+         call self%mixer(channel)%diff(wfn%coeff(:,:,channel))
+      end select
+   end do
+end subroutine diff_mixer
 
-         select case(self%mixer(channel)%info%dipole)
-          case(atom_resolved)
-            call self%mixer(channel)%diff(wfn%dpat)
-         end select
+subroutine get_mixer(self, bas, wfn)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
+   !> Basis set information
+   type(basis_type), intent(in) :: bas
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(inout) :: wfn
 
-         select case(self%mixer(channel)%info%quadrupole)
-          case(atom_resolved)
-            call self%mixer(channel)%diff(wfn%qpat)
-         end select
+   integer :: channel
 
-         select case(self%mixer(channel)%info%density)
-          case(orbital_resolved)
-            call self%mixer(channel)%diff(wfn%density(:,:,channel))
-         end select
+   do channel = 1, size(self%mixer)
+      select case(self%mixer(channel)%info%charge)
+         case(atom_resolved)
+         call self%mixer(channel)%get(wfn%qat)
+         case(shell_resolved)
+         call self%mixer(channel)%get(wfn%qsh)
+         call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
+      end select
 
-         select case(self%mixer(channel)%info%fock)
-          case(orbital_resolved)
-            call self%mixer(channel)%diff(wfn%coeff(:,:,channel))
-         end select
-      end do
-   end subroutine diff_mixer
+      select case(self%mixer(channel)%info%dipole)
+         case(atom_resolved)
+         call self%mixer(channel)%get(wfn%dpat)
+      end select
 
-   subroutine get_mixer(self, bas, wfn)
-      use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
-      use tblite_basis_type, only : basis_type
-      use tblite_scf_utils, only : get_qat_from_qsh
-      !> Instance of the electronic mixer
-      class(mixers_type), intent(inout) :: self
-      !> Basis set information
-      type(basis_type), intent(in) :: bas
-      !> Tight-binding wavefunction data
-      type(wavefunction_type), intent(inout) :: wfn
+      select case(self%mixer(channel)%info%quadrupole)
+         case(atom_resolved)
+         call self%mixer(channel)%get(wfn%qpat)
+      end select
 
-      integer :: channel
+      select case(self%mixer(channel)%info%density)
+         case(orbital_resolved)
+         call self%mixer(channel)%get(wfn%density(:,:,channel))
+      end select
 
-      do channel = 1, size(self%mixer)
-         select case(self%mixer(channel)%info%charge)
-          case(atom_resolved)
-            call self%mixer(channel)%get(wfn%qat)
-          case(shell_resolved)
-            call self%mixer(channel)%get(wfn%qsh)
-            call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
-         end select
-
-         select case(self%mixer(channel)%info%dipole)
-          case(atom_resolved)
-            call self%mixer(channel)%get(wfn%dpat)
-         end select
-
-         select case(self%mixer(channel)%info%quadrupole)
-          case(atom_resolved)
-            call self%mixer(channel)%get(wfn%qpat)
-         end select
-
-         select case(self%mixer(channel)%info%density)
-          case(orbital_resolved)
-            call self%mixer(channel)%get(wfn%density(:,:,channel))
-         end select
-
-         select case(self%mixer(channel)%info%fock)
-          case(orbital_resolved)
-            call self%mixer(channel)%get(wfn%coeff(:,:,channel))
-         end select
-      end do
-   end subroutine get_mixer
+      select case(self%mixer(channel)%info%fock)
+         case(orbital_resolved)
+         call self%mixer(channel)%get(wfn%coeff(:,:,channel))
+      end select
+   end do
+end subroutine get_mixer
 
 end module tblite_scf_mixer_type

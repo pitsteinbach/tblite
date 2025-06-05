@@ -24,7 +24,7 @@ module tblite_cli
       & help_text_fit, help_text_tagdiff, help_text_guess
    use tblite_features, only : get_tblite_feature
    use tblite_lapack_solver, only : lapack_algorithm
-   use tblite_scf_mixer_input, only : mixer_input
+   use tblite_scf_mixer_input, only : mixer_input, mixer_type, mixer_precision, mixer_runmode
    use tblite_solvation, only : solvation_input, cpcm_input, alpb_input, &
       & cds_input, shift_input, solvent_data, get_solvent_data, solution_state, born_kernel
    use tblite_version, only : get_tblite_version
@@ -500,54 +500,64 @@ subroutine get_run_arguments(config, list, start, error)
       iarg = iarg + 1
       call list%get(iarg, arg)
       if (.not. allocated(config%mixer)) allocate(config%mixer)
-      call get_argument_as_int(arg, config%mixer%type, error)
-      if (allocated(error)) exit
-      if (config%mixer%type < 0 .or. config%mixer%type > 2) then
-         call fatal_error(error,"Mixer must be either 0 (native Broyden), 1 (GAMBITS Broyden) or 2 (GAMBITS DIIS)")
-      end if
+      select case (arg)
+      case ("broyden")
+         config%mixer%type = mixer_type%broyden
+      case ("gambits-broyden")
+         config%mixer%type = mixer_type%gambits_broyden
+      case ("gambits-diis")
+         config%mixer%type = mixer_type%gambits_diis
+      case default
+         call fatal_error(error,"Mixer must be either broyden, gambits-broyden or gambits-diis")
+      end select
    
-      case("--mixmem")
+      case("--mixer-memory")
          iarg = iarg + 1
          call list%get(iarg, arg)
          if (.not. allocated(config%mixer)) allocate(config%mixer)
-         call get_argument_as_int(arg, config%mixer%broyden%memory, error)
-         call get_argument_as_int(arg, config%mixer%gambits_broyden%memory, error)
-         call get_argument_as_int(arg, config%mixer%gambits_diis%memory, error)
+         call get_argument_as_int(arg, config%mixer%memory(1), error)
          if (allocated(error)) exit
-         if (config%mixer%broyden%memory <= 0) then
-            call fatal_error(error,"Mixmem must be larger than 0")
+         config%mixer%memory = config%mixer%memory(1)
+         if (config%mixer%memory(1) <= 0) then
+            call fatal_error(error,"Mixer-memory must be larger than 0")
          end if
 
-      case("--mixprec")
+      case("--mixer-precision")
          iarg = iarg + 1
          call list%get(iarg, arg)
          if (.not. allocated(config%mixer)) allocate(config%mixer)
-         call get_argument_as_int(arg, config%mixer%gambits_diis%prec, error)
-         if (allocated(error)) exit
-         if (config%mixer%gambits_diis%prec < 0 .or. config%mixer%gambits_diis%prec > 1) then
-            call fatal_error(error,"Mixprec must be either 0 (FP32) or 1 (FP64)")
-      end if
+         select case (arg)
+         case ("single")
+            config%mixer%prec = mixer_precision%single
+         case ("double")
+            config%mixer%prec = mixer_precision%double
+         case default
+            call fatal_error(error,"Mixer-precision must be single or double")
+         end select
 
-      case("--mixrunmode")
+      case("--mixer-runmode")
          iarg = iarg + 1
          call list%get(iarg, arg)
          if (.not. allocated(config%mixer)) allocate(config%mixer)
-         call get_argument_as_int(arg, config%mixer%gambits_diis%runmode, error)
-         if (allocated(error)) exit
-         if (config%mixer%gambits_diis%runmode < 0 .or. config%mixer%gambits_diis%runmode > 2) then
-            call fatal_error(error,"Mixrunmode must be either 0 (size-dependent), 1 (CPU), or 2 (GPU)")
-      end if
+         select case (arg)
+         case ("default")
+            config%mixer%runmode = mixer_runmode%default
+         case ("cpu")
+            config%mixer%runmode = mixer_runmode%cpu
+         case("gpu")
+            config%mixer%runmode = mixer_runmode%gpu
+         case default
+            call fatal_error(error,"Mixer-runmode must be either default (size-dependent), cpu, or gpu")
+         end select
 
-      case("--mixdamping")
+      case("--mixer-damping")
          iarg = iarg + 1
          call list%get(iarg, arg)
          if (.not. allocated(config%mixer)) allocate(config%mixer)
-         call get_argument_as_real(arg, config%mixer%broyden%damp, error)
-         call get_argument_as_real(arg, config%mixer%gambits_broyden%damp, error)
-         call get_argument_as_real(arg, config%mixer%gambits_diis%damp, error)
+         call get_argument_as_real(arg, config%mixer%damp, error)
          if (allocated(error)) exit
-         if (config%mixer%broyden%damp < 0 .or. config%mixer%broyden%damp > 1) then
-            call fatal_error(error,"Mixdamping must be between 0 and 1")
+         if (config%mixer%damp < 0 .or. config%mixer%damp > 1) then
+            call fatal_error(error,"Mixer-damping must be between 0 and 1")
       end if
 
       case("--solver")
