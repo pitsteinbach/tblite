@@ -305,6 +305,7 @@ pure function get_error_dp(self, iscf) result(error)
 
    real(dp) :: error
 
+   error = 0.0_dp
    error = get_diis_error_dp(self%ptr, iscf, error)
    error = error * (self%nspin*1.0)**2
 end function get_error_dp
@@ -318,6 +319,7 @@ pure function get_error_sp(self, iscf) result(error)
 
    real(sp) :: error
 
+   error = 0.0_sp
    error = get_diis_error_sp(self%ptr, iscf, error)
    error = error * (self%nspin*1.0)**2
 end function get_error_sp
