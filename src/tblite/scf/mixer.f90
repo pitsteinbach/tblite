@@ -25,12 +25,12 @@ module tblite_scf_mixer
    use mctc_env, only : wp, sp, dp
    use mctc_io, only : structure_type
    use tblite_basis, only : basis_type
-   use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved, &
-   & not_used, orbital_resolved
    use tblite_scf_gambits_broyden, only : gambits_broyden_type, new_gambits_broyden
    use tblite_scf_gambits_diis, only : gambits_diis_type, new_gambits_diis
-   use tblite_scf_mixer_input, only : mixer_input, mixer_type
+   use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved, &
+   & not_used, orbital_resolved
    use tblite_scf_mixer_broyden, only : broyden_mixer, new_broyden
+   use tblite_scf_mixer_input, only : mixer_input, mixer_type
    use tblite_scf_mixer_type, only : mixers_type
    use iso_c_binding
    implicit none
