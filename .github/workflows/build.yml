@@ -138,10 +138,13 @@ jobs:
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
-    - name: Install Intel MKL (GCC+fpm)
+    - name: Add Intel repo and install MKL (GCC+fpm)
       if: ${{ matrix.toolchain.build == 'fpm' && matrix.toolchain.mkl_version != '' && contains(matrix.os, 'ubuntu') }}
       run: |
-        sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
+        wget -qO- https://apt.repos.intel.com/keys/intel-gpg-keys.PUB | sudo gpg --dearmor -o /usr/share/keyrings/intel-oneapi-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/intel-oneapi.list
+        sudo apt-get update
+        sudo apt-get install -y intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
     - name: Setup Intel oneAPI environment
       if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
