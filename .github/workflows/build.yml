@@ -76,6 +76,7 @@ jobs:
 
     env:
       PYTHON_V: 3.9
+      OMP_NUM_THREADS: 1,2,1
 
     steps:
     - name: Checkout code
