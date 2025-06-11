@@ -150,15 +150,16 @@ jobs:
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
-    - name: Intel Intel MKL (gcc, fpm)
+    - name: Install Intel MKL (GCC, fpm)
       if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
       run: |
-        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo mkdir -p /usr/share/keyrings
+        curl -fsSL https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB | \
+          sudo gpg --dearmor -o /usr/share/keyrings/intel-oneapi-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | \
+          sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
-        sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
+        sudo apt-get install -y intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
         
     - name: Setup Intel oneAPI environment
       if: ${{ contains(matrix.toolchain.compiler, 'intel') || matrix.toolchain.build == 'fpm' }}
