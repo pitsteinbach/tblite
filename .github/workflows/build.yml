@@ -22,11 +22,6 @@ jobs:
         shell: bash
 
     steps:
-      - name: Install LAPACK (Linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y liblapack-dev
-
       - name: Intel Apt repository
         timeout-minutes: 1
         run: |
