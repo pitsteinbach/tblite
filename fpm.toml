@@ -9,7 +9,7 @@ copyright = "Copyright 2021 S. Ehlert"
 
 [build]
 external-modules = ["ifport"]
-link = ["lapack", "blas", "iomp5"]
+link = ["lapack", "blas"]
 auto-tests = false
 
 [dependencies]
