@@ -62,7 +62,7 @@ jobs:
 
         - os: ubuntu-latest
           build-type: debug
-          toolchain: {compiler: gcc, version: '12', build: fpm}
+          toolchain: {compiler: gcc, version: '12', mkl_version: '2024.1', build: fpm}
 
         # - os: windows-latest
         #   build: meson
@@ -76,7 +76,6 @@ jobs:
 
     env:
       PYTHON_V: 3.9
-      OMP_NUM_THREADS: 1,2,1
 
     steps:
     - name: Checkout code
@@ -98,7 +97,7 @@ jobs:
       if: ${{ contains(matrix.os, 'ubuntu') && matrix.toolchain.compiler == 'gcc' }}
       run: |
         sudo apt-get update
-        sudo apt-get install libopenblas-dev
+        sudo apt-get install -y liblapack-dev
 
     - name: Install fpm
       if: ${{ matrix.toolchain.build == 'fpm' }}
@@ -199,6 +198,7 @@ jobs:
     - name: Build library (fpm)
       if: ${{ matrix.toolchain.build == 'fpm' }}
       run: |
+        echo "FPM_CXXFLAGS=-DW_MKL" >> $GITHUB_ENV
         fpm --version
         fpm build
 
