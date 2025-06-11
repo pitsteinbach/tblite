@@ -55,6 +55,12 @@ jobs:
         compiler: ${{ matrix.toolchain.compiler }}
         version: ${{ matrix.toolchain.version }}
 
+    - name: Add Intel oneAPI APT repository
+      run: |
+        wget -qO- https://apt.repos.intel.com/keys/intel-gpg-keys-2023.gpg | sudo tee /etc/apt/trusted.gpg.d/intel.gpg > /dev/null
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/intel-oneapi.list
+        sudo apt-get update
+
     - name: Install Intel MKL
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
