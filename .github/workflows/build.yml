@@ -67,10 +67,38 @@ jobs:
         - os: ubuntu-latest
           build-type: debug
           toolchain: {compiler: intel, version: '2025.1', mkl_version: '2025.1', build: fpm}
+        
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '10', mkl_version: '2024.1', build: fpm}
 
         - os: ubuntu-latest
           build-type: debug
-          toolchain: {compiler: gcc, version: '2025.1', mkl_version: '2025.1', build: fpm}
+          toolchain: {compiler: gcc, version: '10', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '11', mkl_version: '2024.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '11', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '13', mkl_version: '2024.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '13', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '14', mkl_version: '2024.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '14', mkl_version: '2025.1', build: fpm}
 
         # - os: windows-latest
         #   build: meson
