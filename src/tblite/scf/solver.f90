@@ -19,7 +19,7 @@
 
 !> Declaration of the abstract base class for electronic solvers
 module tblite_scf_solver
-   use mctc_env, only : sp, dp, error_type, wp
+   use mctc_env, only : sp, dp, error_type
    implicit none
    private
 

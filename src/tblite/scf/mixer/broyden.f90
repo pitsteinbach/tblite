@@ -237,7 +237,6 @@ subroutine broyden(n, q, qlast, dq, dqlast, iter, memory, alpha, omega, df, u, a
       i = mod(j - 1, memory) + 1
       q(:) = q - omega(i) * c(i, 1) * u(:, i)
    end do
-
 end subroutine broyden
 
 subroutine lineq(a, c, info)

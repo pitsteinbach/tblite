@@ -65,7 +65,7 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    class(dispersion_type), intent(in), optional :: dispersion
    !> Container for general interactions
    type(container_list), intent(in), optional :: interactions
-   
+
    !> Integral container
    type(integral_type), intent(in) :: ints
    !> Density dependent potential shifts
@@ -76,10 +76,10 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    type(container_cache), intent(inout), optional :: dcache
    !> Restart data for interaction containers
    type(container_cache), intent(inout), optional :: icache
-   
+
    !> Self-consistent energy
    real(wp), intent(inout) :: energies(:)
-   
+
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
 

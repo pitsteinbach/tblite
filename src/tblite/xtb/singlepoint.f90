@@ -68,8 +68,8 @@ contains
 
 
 !> Entry point for performing single point calculation using the xTB calculator
-subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, &
-& gradient, sigma, verbosity, results, post_process)
+subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigma, &
+      & verbosity, results, post_process)
    !> Calculation context
    type(context_type), intent(inout) :: ctx
    !> Molecular structure data
@@ -312,6 +312,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, &
       call timer%push("hamiltonian")
       allocate(dEdcn(mol%nat))
       dEdcn(:) = 0.0_wp
+
       allocate(wdensity(calc%bas%nao, calc%bas%nao, wfn%nspin))
       do spin = 1, wfn%nspin
          tmp = wfn%focc(:, spin) * wfn%emo(:, spin)
