@@ -33,8 +33,8 @@ jobs:
             build-type: debug
             toolchain:
               {
-                compiler: gcc,
-                version: "12",
+                compiler: intel,
+                version: "2024.1",
                 mkl_version: "2024.1",
                 build: fpm,
               }
