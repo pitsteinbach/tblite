@@ -64,6 +64,14 @@ jobs:
           build-type: debug
           toolchain: {compiler: intel, version: '2024.1', mkl_version: '2024.1', build: fpm}
 
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: intel, version: '2025.1', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '2025.1', mkl_version: '2025.1', build: fpm}
+
         # - os: windows-latest
         #   build: meson
         #   build-type: debug
@@ -106,13 +114,13 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Prepare for cache restore
-      if: ${{ contains(matrix.toolchain.compiler, 'intel') || matrix.toolchain.build == 'fpm' }}
+      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
       run: |
         sudo mkdir -p /opt/intel
         sudo chown $USER /opt/intel
 
     - name: Cache Intel installation
-      if: ${{ contains(matrix.toolchain.compiler, 'intel') || matrix.toolchain.build == 'fpm' }}
+      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
       id: cache-install
       uses: actions/cache@v4
       with:
@@ -138,20 +146,21 @@ jobs:
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
-    - name: Install Intel MKL (gcc, fpm)
-      if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
-      run: |
-        sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
-
-    - name: Source Intel oneAPI environment (gcc, fpm)
-      if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
+    - name: Setup Intel oneAPI environment
+      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
       run: |
         source /opt/intel/oneapi/setvars.sh --force
         printenv >> $GITHUB_ENV
 
-    - name: Setup Intel oneAPI environment
-      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
+    - name: Intel Intel MKL (gcc, fpm)
+      if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
       run: |
+        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-get update
+        sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
         source /opt/intel/oneapi/setvars.sh --force
         printenv >> $GITHUB_ENV
 
