@@ -348,9 +348,9 @@ subroutine parse_zip_footer(io, filename, nrecs, global_header, global_header_of
    integer, intent(out) :: stat
    character(len=:), allocatable :: msg
 
-   integer(i2) :: path_size=0_i2, extra_field_size=0_i2, comment_size=0_i2
-   integer(i2) :: disk_no=0_i2, disk_start=0_i2, nrecs_on_disk=0_i2
-   integer(i4) :: nbytes_compressed=0_i4, global_header_size=0_i4
+   integer(i2) :: path_size, extra_field_size, comment_size
+   integer(i2) :: disk_no, disk_start, nrecs_on_disk
+   integer(i4) :: nbytes_compressed, global_header_size
    character(len=512) :: errmsg
    integer :: res, length, pos
    integer(i4) :: header_sig
