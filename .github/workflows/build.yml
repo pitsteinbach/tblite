@@ -22,16 +22,11 @@ jobs:
         shell: bash
 
     steps:
-      - name: Intel Apt repository
-        timeout-minutes: 1
+      - name: Install LAPACK (Linux)
         run: |
-          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
+          sudo apt-get install -y liblapack-dev
 
-      # optional
       - name: Install Intel MPI and MKL
         timeout-minutes: 5
         run: |
