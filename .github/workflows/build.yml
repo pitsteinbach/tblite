@@ -22,69 +22,58 @@ jobs:
         shell: bash
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Intel Apt repository
+        timeout-minutes: 1
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt-get update
+          
+      - name: Install Intel oneAPI compilers
+        timeout-minutes: 5
+        run: sudo apt-get install intel-oneapi-compiler-fortran intel-oneapi-compiler-dpcpp-cpp 
 
-    - name: Install fpm
-      uses: fortran-lang/setup-fpm@v7
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      # optional
+      - name: Install Intel MPI and MKL
+        timeout-minutes: 5
+        run: intel-oneapi-mpi intel-oneapi-mpi-devel intel-oneapi-mkl
 
-    - name: Prepare for cache restore
-      run: |
-        sudo mkdir -p /opt/intel
-        sudo chown $USER /opt/intel
+      - name: Setup Intel oneAPI environment
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          printenv >> $GITHUB_ENV
 
-    - name: Cache Intel installation
-      id: cache-install
-      uses: actions/cache@v4
-      with:
-        path: /opt/intel/oneapi
-        key: install-${{ matrix.toolchain.compiler }}-${{ matrix.toolchain.version }}-${{ matrix.toolchain.mkl_version }}-${{ matrix.os }}
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install GCC Compiler
-      uses: fortran-lang/setup-fortran@v1
-      with:
-        compiler: ${{ matrix.toolchain.compiler }}
-        version: ${{ matrix.toolchain.version }}
+      - name: Install fpm
+        uses: fortran-lang/setup-fpm@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install Intel Compiler (Linux)
-      if: ${{ matrix.toolchain.build == 'fpm' }}
-      uses: fortran-lang/setup-fortran@v1
-      with:
-        compiler: ${{ matrix.toolchain.compiler }}
-        version: ${{ matrix.toolchain.version }}
+      - name: Install GCC Compiler
+        uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
 
-    - name: Add Intel oneAPI APT repository
-      run: |
-        wget -qO- https://apt.repos.intel.com/keys/intel-gpg-keys-2023.gpg | sudo tee /etc/apt/trusted.gpg.d/intel.gpg > /dev/null
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/intel-oneapi.list
-        sudo apt-get update
+      - name: Setup environment for Fortran and C compilers
+        run: |
+            FC="gfortran"
+            CC="gcc"
+            CXX="g++"
+            echo "FC=$FC" >> $GITHUB_ENV
+            echo "CC=$CC" >> $GITHUB_ENV
+            echo "CXX=$CXX" >> $GITHUB_ENV
 
-    - name: Install Intel MKL
-      run: |
-        sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
+      - name: Build library (fpm)
+        run: |
+          FPM_CXXFLAGS=-DW_MKL
+          echo "FPM_CXXFLAGS=$FPM_CXXFLAGS" >> $GITHUB_ENV
+          fpm --version
+          fpm build
 
-    - name: Setup Intel oneAPI environment
-      run: |
-        source /opt/intel/oneapi/setvars.sh --force
-        printenv >> $GITHUB_ENV
-
-    - name: Setup environment for Fortran and C compilers
-      run: |
-          FC="gfortran"
-          CC="gcc"
-          CXX="g++"
-          echo "FC=$FC" >> $GITHUB_ENV
-          echo "CC=$CC" >> $GITHUB_ENV
-          echo "CXX=$CXX" >> $GITHUB_ENV
-
-    - name: Build library (fpm)
-      run: |
-        FPM_CXXFLAGS=-DW_MKL
-        echo "FPM_CXXFLAGS=$FPM_CXXFLAGS" >> $GITHUB_ENV
-        fpm --version
-        fpm build
-
-    - name: Run unit tests (fpm)
-      run: fpm test
+      - name: Run unit tests (fpm)
+        run: fpm test
