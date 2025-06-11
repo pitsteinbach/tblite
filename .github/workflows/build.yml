@@ -43,7 +43,8 @@ jobs:
       # optional
       - name: Install Intel MPI and MKL
         timeout-minutes: 5
-        run: sudo apt-get install intel-oneapi-mpi intel-oneapi-mpi-devel intel-oneapi-mkl
+        run: |
+          sudo apt-get install intel-oneapi-mpi intel-oneapi-mpi-devel intel-oneapi-mkl
           echo "MKL root:"
           find /opt/intel/oneapi/mkl -maxdepth 2
           echo "Searching for mkl.h:"
