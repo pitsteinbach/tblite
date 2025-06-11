@@ -150,12 +150,6 @@ jobs:
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
-    - name: Setup Intel oneAPI environment
-      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
-      run: |
-        source /opt/intel/oneapi/setvars.sh --force
-        printenv >> $GITHUB_ENV
-
     - name: Intel Intel MKL (gcc, fpm)
       if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
       run: |
@@ -165,6 +159,10 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
+        
+    - name: Setup Intel oneAPI environment
+      if: ${{ contains(matrix.toolchain.compiler, 'intel') || matrix.toolchain.build == 'fpm' }}
+      run: |
         source /opt/intel/oneapi/setvars.sh --force
         printenv >> $GITHUB_ENV
 
@@ -222,15 +220,8 @@ jobs:
     - name: Build library (fpm)
       if: ${{ matrix.toolchain.build == 'fpm' }}
       run: |
-        # export LD_LIBRARY_PATH=/opt/intel/oneapi/mkl/latest/lib/intel64:$LD_LIBRARY_PATH
-        # echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        # echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
-        # export LIBRARY_PATH=/opt/intel/oneapi/mkl/latest/lib/intel64:$LIBRARY_PATH
         export FPM_CXXFLAGS=-DW_MKL
         echo "FPM_CXXFLAGS=$FPM_CXXFLAGS" >> $GITHUB_ENV
-        # export CPATH=/opt/intel/oneapi/mkl/latest/include:$CPATH
-        # echo "CPATH=$CPATH" >> $GITHUB_ENV
-
         fpm --version
         fpm build
 
