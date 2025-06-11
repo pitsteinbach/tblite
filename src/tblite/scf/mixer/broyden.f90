@@ -107,7 +107,7 @@ subroutine diff_1d(self, qvec)
    real(wp), intent(in) :: qvec(:)
 
    self%dq(self%idif+1:self%idif+size(qvec)) = qvec &
-   & - self%q_in(self%idif+1:self%idif+size(qvec))
+      & - self%q_in(self%idif+1:self%idif+size(qvec))
    self%idif = self%idif + size(qvec)
 end subroutine diff_1d
 
@@ -129,7 +129,7 @@ subroutine next(self, iscf, wfn, error)
    self%iget = 0
    self%iter = self%iter + 1
    call broyden(self%ndim, self%q_in, self%qlast_in, self%dq, self%dqlast, &
-   & self%iter, self%memory, self%damp, self%omega, self%df, self%u, self%a, info)
+      & self%iter, self%memory, self%damp, self%omega, self%df, self%u, self%a, info)
    if (info /= 0) then
       call fatal_error(error, "Broyden mixing failed to obtain next iteration")
    end if

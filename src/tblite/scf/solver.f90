@@ -50,5 +50,5 @@ module tblite_scf_solver
       end subroutine solve_dp
    end interface
 
-   
+
 end module tblite_scf_solver

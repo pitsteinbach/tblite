@@ -236,7 +236,7 @@ contains
             call ctx%message("")
          end if
       end block
-      
+
    end subroutine ceh_singlepoint
 
 end module tblite_ceh_singlepoint

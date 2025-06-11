@@ -43,9 +43,8 @@ module tblite_scf_iterator
 contains
 
 !> Evaluate self-consistent iteration for the density-dependent Hamiltonian
-subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, &
-& coulomb, dispersion, interactions, ints, pot, ccache, dcache, icache, &
-& energies, error)
+subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
+      & interactions, ints, pot, ccache, dcache, icache, energies, error)
    !> Current iteration count
    integer, intent(inout) :: iscf
    !> Molecular structure data
@@ -66,6 +65,7 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, &
    class(dispersion_type), intent(in), optional :: dispersion
    !> Container for general interactions
    type(container_list), intent(in), optional :: interactions
+   
    !> Integral container
    type(integral_type), intent(in) :: ints
    !> Density dependent potential shifts
@@ -76,8 +76,10 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, &
    type(container_cache), intent(inout), optional :: dcache
    !> Restart data for interaction containers
    type(container_cache), intent(inout), optional :: icache
+   
    !> Self-consistent energy
    real(wp), intent(inout) :: energies(:)
+   
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
 
@@ -91,7 +93,6 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, &
    end if
 
    iscf = iscf + 1
-
    call pot%reset
    if (present(coulomb) .and. present(ccache)) then
       call coulomb%get_potential(mol, ccache, wfn, pot)
@@ -116,13 +117,13 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, &
    if (allocated(error)) return
 
    call get_mulliken_shell_charges(bas, ints%overlap, wfn%density, wfn%n0sh, &
-   & wfn%qsh)
+      & wfn%qsh)
    call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
 
    call get_mulliken_atomic_multipoles(bas, ints%dipole, wfn%density, &
-   & wfn%dpat)
+      & wfn%dpat)
    call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
-   & wfn%qpat)
+      & wfn%qpat)
 
    call mixer%diff_mixer(wfn)
 
