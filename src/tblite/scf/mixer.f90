@@ -34,7 +34,7 @@ module tblite_scf_mixer
    use tblite_scf_mixer_broyden, only : broyden_mixer, new_broyden
    use tblite_scf_mixer_input, only : mixer_input, mixer_kind
    use tblite_scf_mixer_type, only : mixers_type
-   use iso_c_binding
+   use iso_c_binding, only : c_size_t
    implicit none
    private
 
@@ -88,7 +88,7 @@ subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel,
       case(mixer_kind%gambits_broyden)
       if (.not. allocated(self%ctx)) then
          allocate(self%ctx)
-         call self%ctx%setup(int(prlevel, kind=c_size_t), 0, 0.0)
+         call self%ctx%setup(int(prlevel,kind=c_size_t))
       end if
 
       block
@@ -107,7 +107,7 @@ subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel,
       case(mixer_kind%gambits_diis)
       if (.not. allocated(self%ctx)) then
          allocate(self%ctx)
-         call self%ctx%setup(int(prlevel, kind=c_size_t), 0, 0.0)
+         call self%ctx%setup(int(prlevel,kind=c_size_t))
       end if
 
       block
