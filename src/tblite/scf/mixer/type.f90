@@ -19,17 +19,22 @@
 
 !> Base class for electronic mixing
 module tblite_scf_mixer_type
+   use gambits_api_context, only : gambits_context_type
    use mctc_env, only : error_type, wp
    use tblite_basis_type, only : basis_type
+   use tblite_context, only : context_type
    use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved, orbital_resolved
+   use tblite_scf_mixer_input, only : mixer_kind
    use tblite_scf_utils, only : get_qat_from_qsh
    use tblite_wavefunction, only : wavefunction_type
+   use iso_c_binding, only : c_ptr, c_null_ptr
    implicit none
    private
 
    !> Abstract base class for electronic mixing
    type, public, abstract :: mixer_type
       type(scf_info) :: info
+      character(len=:), allocatable :: msg
    contains
       !> Apply mixing to the density
       procedure(next), deferred :: next
@@ -59,14 +64,16 @@ module tblite_scf_mixer_type
       procedure :: get_3d
       !> Get error metric from mixing
       procedure(get_error), deferred :: get_error
+      !> Get timings
+      procedure :: get_timings
       !> Destroy mixer
       procedure :: cleanup
    end type mixer_type
 
    abstract interface
       !> Apply mixing to the density
-      subroutine next(self, iscf, wfn, error)
-         import :: mixer_type, wavefunction_type, error_type
+      subroutine next(self, iscf, wfn, error, ctx)
+         import :: mixer_type, wavefunction_type, error_type, gambits_context_type
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Iteration counter
@@ -75,44 +82,62 @@ module tblite_scf_mixer_type
          type(wavefunction_type), intent(inout) :: wfn
          !> Error handling
          type(error_type), allocatable, intent(out) :: error
+         !> GAMBITS context
+         type(gambits_context_type), intent(in), optional :: ctx
       end subroutine next
 
       !> Set new density from 1D array
-      subroutine set_1d(self, qvec)
-         import :: mixer_type, wp
+      subroutine set_1d(self, qvec, error, ctx)
+         import :: mixer_type, wp, error_type, gambits_context_type
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
          real(wp), intent(in) :: qvec(:)
+         !> Error handling
+         type(error_type), allocatable, intent(out) :: error
+         !> GAMBITS context
+         type(gambits_context_type), intent(in), optional :: ctx
       end subroutine set_1d
 
       !> Set difference between new and old density from 1D array
-      subroutine diff_1d(self, qvec)
-         import :: mixer_type, wp
+      subroutine diff_1d(self, qvec, error, ctx)
+         import :: mixer_type, wp, error_type, gambits_context_type
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
          real(wp), intent(in) :: qvec(:)
+         !> Error handling
+         type(error_type), allocatable, intent(out) :: error
+         !> GAMBITS context
+         type(gambits_context_type), intent(in), optional :: ctx
       end subroutine diff_1d
 
       !> Get density as 1D array
-      subroutine get_1d(self, qvec)
-         import :: mixer_type, wp
+      subroutine get_1d(self, qvec, error, ctx)
+         import :: mixer_type, wp, error_type, gambits_context_type
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
          real(wp), intent(out) :: qvec(:)
+         !> Error handling
+         type(error_type), allocatable, intent(out) :: error
+         !> GAMBITS context
+         type(gambits_context_type), intent(in), optional :: ctx
       end subroutine get_1d
 
       !> Get error metric from mixing
-      pure function get_error(self,iscf) result(error)
-         import :: mixer_type, wp
+      function get_error(self, iscf, error, ctx) result(err)
+         import :: mixer_type, error_type, gambits_context_type, wp
          !> Instance of the electronic mixer
-         class(mixer_type), intent(in) :: self
+         class(mixer_type), intent(inout) :: self
          !> Iteration counter
          integer, intent(in) :: iscf
+         !> Error handling
+         type(error_type), allocatable, intent(out) :: error
+         !> GAMBITS context
+         type(gambits_context_type), intent(in), optional :: ctx
          !> Error metric
-         real(wp) :: error
+         real(wp) :: err
       end function get_error
    end interface
 
@@ -121,111 +146,153 @@ module tblite_scf_mixer_type
       !> List of mixers
       class(mixer_type), allocatable :: mixer(:)
       !> List of mixer types
-      integer, allocatable :: type(:)
+      integer, allocatable :: kind(:)
+      !> GAMBITS context
+      type(gambits_context_type), allocatable :: ctx
    contains
       !> Apply mixing to the density
       procedure :: next_mixer
       !> Get error metric from mixing
       procedure :: get_error_mixer
-      !> Destroy mixer
-      procedure :: cleanup_mixer
       !> Set new density
       procedure :: set_mixer
       !> Set difference between new and old density
       procedure :: diff_mixer
       !> Get density
       procedure :: get_mixer
+      !> Print timings
+      procedure :: timings
+      !> Destroy mixer
+      procedure :: cleanup_mixer
    end type mixers_type
 
 contains
 
 !> Set new density from 2D array
-subroutine set_2d(self, qvec)
+subroutine set_2d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(in), target :: qvec(:, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%set(qptr)
+   call self%set(qptr, error, ctx)
 end subroutine set_2d
 
 !> Set new density from 3D array
-subroutine set_3d(self, qvec)
+subroutine set_3d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(in), target :: qvec(:, :, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%set(qptr)
+   call self%set(qptr, error, ctx)
 end subroutine set_3d
 
 !> Set difference between new and old density from 2D array
-subroutine diff_2d(self, qvec)
+subroutine diff_2d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(in), target :: qvec(:, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%diff(qptr)
+   call self%diff(qptr, error, ctx)
 end subroutine diff_2d
 
 !> Set difference between new and old density from 3D array
-subroutine diff_3d(self, qvec)
+subroutine diff_3d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(in), target :: qvec(:, :, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%diff(qptr)
+   call self%diff(qptr, error, ctx)
 end subroutine diff_3d
 
 !> Get density as 2D array
-subroutine get_2d(self, qvec)
+subroutine get_2d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(out), target :: qvec(:, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%get(qptr)
+   call self%get(qptr, error, ctx)
 end subroutine get_2d
 
 !> Get density as 3D array
-subroutine get_3d(self, qvec)
+subroutine get_3d(self, qvec, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
    !> Density vector
    real(wp), contiguous, intent(out), target :: qvec(:, :, :)
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(in), optional :: ctx
 
    real(wp), pointer :: qptr(:)
 
    qptr(1:size(qvec)) => qvec
-   call self%get(qptr)
+   call self%get(qptr, error, ctx)
 end subroutine get_3d
 
 !> Cleanup
-subroutine cleanup(self)
+subroutine cleanup(self, error, ctx)
    !> Instance of the electronic mixer
    class(mixer_type), intent(inout) :: self
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> GAMBITS context
+   type(gambits_context_type), intent(inout), optional :: ctx
 end subroutine cleanup
 
-subroutine next_mixer(self, iscf, wfn, error)
+!> Timings
+subroutine get_timings(self, ctx)
+   !> Instance of the electronic mixer
+   class(mixer_type), intent(inout) :: self
+   !> GAMBITS context
+   type(gambits_context_type), intent(inout), optional :: ctx
+end subroutine get_timings
+
+subroutine next_mixer(self, ctx, iscf, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
    !> Iteration counter
    integer, intent(in) :: iscf
    !> Tight-binding wavefunction data
@@ -236,154 +303,238 @@ subroutine next_mixer(self, iscf, wfn, error)
    integer :: channel
 
    do channel = 1, size(self%mixer)
-      call self%mixer(channel)%next(iscf, wfn, error)
+      call self%mixer(channel)%next(iscf, wfn, error, self%ctx)
+      if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+      if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg) 
    end do
 end subroutine next_mixer
 
 
-pure function get_error_mixer(self, iscf) result(error)
+function get_error_mixer(self, iscf, error, ctx) result(err)
    !> Instance of the electronic mixer
-   class(mixers_type), intent(in) :: self
+   class(mixers_type), intent(inout) :: self
    !> Current iteration
    integer, intent(in) :: iscf
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
 
    integer :: channel
-   real(wp) :: error
-   real(wp) :: perr(size(self%type))
+   real(wp) :: err
+   real(wp) :: perr(size(self%kind))
 
    do channel = 1, size(self%mixer)
-      perr(channel) = self%mixer(channel)%get_error(iscf)
+      perr(channel) = self%mixer(channel)%get_error(iscf, error, self%ctx)
+      if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+      if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
    end do
 
-   error = maxval(abs(perr))
+   err = maxval(abs(perr))
 end function get_error_mixer
 
-subroutine cleanup_mixer(self)
+subroutine cleanup_mixer(self, error, ctx)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
 
-   integer :: i
+   integer :: channel
 
-   do i = 1, size(self%mixer)
-      call self%mixer(i)%cleanup()
+   do channel = 1, size(self%mixer)
+      call self%mixer(channel)%cleanup(error, self%ctx)
+      if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+      if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
    end do
+
+   if (any((self%kind == mixer_kind%gambits_broyden .or. self%kind==mixer_kind%gambits_diis))) then
+      call self%ctx%delete()
+   end if
 end subroutine cleanup_mixer
 
-subroutine set_mixer(self, wfn)
+subroutine set_mixer(self, ctx, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(in) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
    integer :: channel
 
    do channel = 1, size(self%mixer)
       select case(self%mixer(channel)%info%charge)
          case(atom_resolved)
-         call self%mixer(channel)%set(wfn%qat)
+         call self%mixer(channel)%set(wfn%qat, error,self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
          case(shell_resolved)
-         call self%mixer(channel)%set(wfn%qsh)
+         call self%mixer(channel)%set(wfn%qsh, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%dipole)
          case(atom_resolved)
-         call self%mixer(channel)%set(wfn%dpat)
+         call self%mixer(channel)%set(wfn%dpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%quadrupole)
          case(atom_resolved)
-         call self%mixer(channel)%set(wfn%qpat)
+         call self%mixer(channel)%set(wfn%qpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%density)
          case(orbital_resolved)
-         call self%mixer(channel)%set(wfn%density(:,:,channel))
+         call self%mixer(channel)%set(wfn%density(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%fock)
          case(orbital_resolved)
-         call self%mixer(channel)%set(wfn%coeff(:,:,channel))
+         call self%mixer(channel)%set(wfn%coeff(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
    end do
+
 end subroutine set_mixer
 
-subroutine diff_mixer(self, wfn)
+subroutine diff_mixer(self, ctx, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(in) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
    integer :: channel
 
    do channel = 1, size(self%mixer)
       select case(self%mixer(channel)%info%charge)
          case(atom_resolved)
-         call self%mixer(channel)%diff(wfn%qat)
+         call self%mixer(channel)%diff(wfn%qat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
          case(shell_resolved)
-         call self%mixer(channel)%diff(wfn%qsh)
+         call self%mixer(channel)%diff(wfn%qsh, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%dipole)
          case(atom_resolved)
-         call self%mixer(channel)%diff(wfn%dpat)
+         call self%mixer(channel)%diff(wfn%dpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%quadrupole)
          case(atom_resolved)
-         call self%mixer(channel)%diff(wfn%qpat)
+         call self%mixer(channel)%diff(wfn%qpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%density)
          case(orbital_resolved)
-         call self%mixer(channel)%diff(wfn%density(:,:,channel))
+         call self%mixer(channel)%diff(wfn%density(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%fock)
          case(orbital_resolved)
-         call self%mixer(channel)%diff(wfn%coeff(:,:,channel))
+         call self%mixer(channel)%diff(wfn%coeff(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
    end do
 end subroutine diff_mixer
 
-subroutine get_mixer(self, bas, wfn)
+subroutine get_mixer(self, ctx, bas, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
    !> Basis set information
    type(basis_type), intent(in) :: bas
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(inout) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
    integer :: channel
 
    do channel = 1, size(self%mixer)
       select case(self%mixer(channel)%info%charge)
          case(atom_resolved)
-         call self%mixer(channel)%get(wfn%qat)
+         call self%mixer(channel)%get(wfn%qat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
          case(shell_resolved)
-         call self%mixer(channel)%get(wfn%qsh)
+         call self%mixer(channel)%get(wfn%qsh, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
          call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
       end select
 
       select case(self%mixer(channel)%info%dipole)
          case(atom_resolved)
-         call self%mixer(channel)%get(wfn%dpat)
+         call self%mixer(channel)%get(wfn%dpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%quadrupole)
          case(atom_resolved)
-         call self%mixer(channel)%get(wfn%qpat)
+         call self%mixer(channel)%get(wfn%qpat, error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%density)
          case(orbital_resolved)
-         call self%mixer(channel)%get(wfn%density(:,:,channel))
+         call self%mixer(channel)%get(wfn%density(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
 
       select case(self%mixer(channel)%info%fock)
          case(orbital_resolved)
-         call self%mixer(channel)%get(wfn%coeff(:,:,channel))
+         call self%mixer(channel)%get(wfn%coeff(:,:,channel), error, self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
       end select
    end do
 end subroutine get_mixer
+
+subroutine timings(self, ctx)
+   !> Instance of the electronic mixer
+   class(mixers_type), intent(inout) :: self
+   !> Calculation context
+   type(context_type) , intent(inout) :: ctx
+
+   integer :: channel
+
+   do channel = 1, size(self%mixer)
+      if (self%kind(channel) /= 1) then
+         call self%mixer(channel)%get_timings(self%ctx)
+         if (len(self%mixer(channel)%msg) > 0) call ctx%message(self%mixer(channel)%msg)
+         if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg)
+      end if
+   end do
+end subroutine timings
 
 end module tblite_scf_mixer_type
