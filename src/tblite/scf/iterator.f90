@@ -34,7 +34,7 @@ module tblite_scf_iterator
    use tblite_scf_mixer_type, only : mixers_type
    use tblite_scf_info, only : scf_info
    use tblite_scf_potential, only : potential_type, add_pot_to_h1
-   use tblite_scf_utils, only : get_density, get_electronic_energy, reduce, get_qat_from_qsh
+   use tblite_scf_utils, only : next_density, get_electronic_energy, reduce, get_qat_from_qsh
    use tblite_scf_solver, only : solver_type
    implicit none
    private
@@ -116,7 +116,7 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
       call mixer%get_mixer(ctx, bas, wfn, error)
    end if
 
-   call get_density(wfn, solver, ints, ts, error)
+   call next_density(wfn, solver, ints, ts, error)
    if (allocated(error)) return
 
    call get_mulliken_shell_charges(bas, ints%overlap, wfn%density, wfn%n0sh, &

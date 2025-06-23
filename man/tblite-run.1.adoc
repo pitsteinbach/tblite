@@ -104,6 +104,22 @@ Supported geometry input formats are:
      Number of iterations for converging the electronic structure.
      Default: 250.
 
+*--mixer* _string_::
+     Set the type of convergence accelerator (mixer) possible options:
+     broyden (default), gambits-broyden, gambits-diis.
+
+*--mixer-memory _int_:: 
+     Number of past iterations to be used by the mixer.
+
+*--mixer-precision _string_::
+     Precision to be used by the mixer: single (default) or double
+
+*--mixer-runmode _string_::
+     Mixer runmode: default (size-dependent), cpu or gpu
+
+*--mixer-damping _real_::
+     Damping factor for mixing (default: 0.4)
+
 *--solver* _name_::
      Electronic solver for SCF, possible options:
      _gvd_ (default), and _gvr_
@@ -111,6 +127,17 @@ Supported geometry input formats are:
 *--grad* [_file_]::
      Evaluates analytical gradient,
      results are stored in _file_ (default: tblite.txt)
+
+*--post-processing* _file_|_name_::
+     Add post processing methods to the calculation either by using a toml file as input
+     or by specifying the post-processing step name directly.
+     Mayer-Wiberg bond orders are computed by default.
+     - molmom (molecular multipole moments)
+     - xtbml (atomistic properties based on Mulliken partitioning)
+
+*--post-processing-output* _file_::
+     Output file for post processing results in npz format.
+     (default: tblite-data.npz)
 
 *--json* [_file_]::
      Dump results as JSON output to _file_ (default: tblite.json)
