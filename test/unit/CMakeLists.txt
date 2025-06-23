@@ -33,6 +33,7 @@ set(
   "ncoord"
   "npy"
   "npz"
+  "mixers"
   "post-processing"
   "repulsion"
   "slater-expansion"
@@ -53,6 +54,13 @@ set(
   test-srcs
   "main.f90"
 )
+
+if(GPU)
+  list(APPEND tests "mixers_gpu")
+else()
+  list(APPEND test-srcs "test_mixers_gpu.f90")
+endif()
+
 foreach(t IN LISTS tests)
   string(MAKE_C_IDENTIFIER ${t} t) 
   list(APPEND test-srcs "test_${t}.f90")
