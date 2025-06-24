@@ -353,7 +353,7 @@ function get_error_dp(self, iscf, error, ctx) result(err)
    !> GAMBITS context
    type(gambits_context_type), intent(in), optional :: ctx
 
-   real(dp) :: err
+   real(dp) :: err=0.0_dp
 
    err = get_diis_error_dp(ctx%ptr, self%ptr, iscf, err)
    err = err * (self%nspin*1.0)**2
@@ -371,7 +371,7 @@ function get_error_sp(self, iscf, error, ctx) result(err)
    !> GAMBITS context
    type(gambits_context_type), intent(in), optional :: ctx
 
-   real(sp) :: err
+   real(sp) :: err=0.0_sp
 
    err = get_diis_error_sp(ctx%ptr, self%ptr, iscf, err)
    err = err * (self%nspin*1.0)**2

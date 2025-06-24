@@ -62,7 +62,19 @@ jobs:
 
         - os: ubuntu-latest
           build-type: debug
-          toolchain: {compiler: gcc, version: '12', build: fpm}
+          toolchain: {compiler: intel, version: '2024.1', mkl_version: '2024.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: intel, version: '2025.1', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '10', mkl_version: '2025.1', build: fpm}
+
+        - os: ubuntu-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '14', mkl_version: '2025.1', build: fpm}
 
         # - os: windows-latest
         #   build: meson
@@ -86,7 +98,7 @@ jobs:
         python-version: ${{ env.PYTHON_V }}
 
     - name: Install LAPACK (macOS)
-      if: ${{ contains(matrix.os, 'macos') && matrix.toolchain.compiler == 'gcc' }}
+      if: ${{ contains(matrix.os, 'macos') && (matrix.toolchain.compiler == 'gcc' || matrix.toolchain.build == 'fpm') }}
       run: |
         brew install openblas
         echo "PKG_CONFIG_PATH=/usr/local/opt/openblas/lib/pkgconfig" >> $GITHUB_ENV
@@ -94,7 +106,7 @@ jobs:
         echo "CPPFLAGS=-I/opt/homebrew/opt/openblas/include" >> $GITHUB_ENV
 
     - name: Install LAPACK (Linux)
-      if: ${{ contains(matrix.os, 'ubuntu') && matrix.toolchain.compiler == 'gcc' }}
+      if: ${{ contains(matrix.os, 'ubuntu') && (matrix.toolchain.compiler == 'gcc' || matrix.toolchain.build == 'fpm') }}
       run: |
         sudo apt-get update
         sudo apt-get install -y liblapack-dev
@@ -133,13 +145,24 @@ jobs:
         compiler: ${{ matrix.toolchain.compiler }}
         version: ${{ matrix.toolchain.version }}
 
-    - name: Install Intel MKL
+    - name: Install Intel MKL (intel)
       if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'intel') && steps.cache-install.outputs.cache-hit != 'true' }}
       run: |
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
+    - name: Install Intel MKL (GCC, fpm)
+      if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'gcc') && matrix.toolchain.build == 'fpm' }}
+      run: |
+        sudo mkdir -p /usr/share/keyrings
+        curl -fsSL https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB | \
+          sudo gpg --dearmor -o /usr/share/keyrings/intel-oneapi-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | \
+          sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-get update
+        sudo apt-get install -y intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
+        
     - name: Setup Intel oneAPI environment
-      if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
+      if: ${{ contains(matrix.toolchain.compiler, 'intel') || matrix.toolchain.build == 'fpm' }}
       run: |
         source /opt/intel/oneapi/setvars.sh --force
         printenv >> $GITHUB_ENV
@@ -198,6 +221,8 @@ jobs:
     - name: Build library (fpm)
       if: ${{ matrix.toolchain.build == 'fpm' }}
       run: |
+        export FPM_CXXFLAGS=-DW_MKL
+        echo "FPM_CXXFLAGS=$FPM_CXXFLAGS" >> $GITHUB_ENV
         fpm --version
         fpm build
 
@@ -357,3 +382,4 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        
