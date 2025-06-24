@@ -34,6 +34,8 @@ program tester
    use test_integral_multipole, only : collect_integral_multipole
    use test_integral_overlap, only : collect_integral_overlap
    use test_ipea1_xtb, only : collect_ipea1_xtb
+   use test_mixers, only : collect_mixers
+   use test_mixers_gpu, only : collect_mixers_gpu
    use test_ncoord, only : collect_ncoord
    use test_npy, only : collect_npy
    use test_npz, only : collect_npz
@@ -90,7 +92,9 @@ program tester
       new_testsuite("xtb-external", collect_xtb_external), &
       new_testsuite("spin", collect_spin), &
       new_testsuite("xtb-param", collect_xtb_param), &
-      new_testsuite("xtbml", collect_xtbml) &
+      new_testsuite("xtbml", collect_xtbml), &
+      new_testsuite("mixers", collect_mixers), &
+      new_testsuite("mixers_gpu", collect_mixers_gpu) &
       ]
 
    call get_argument(1, suite_name)

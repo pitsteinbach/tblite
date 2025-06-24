@@ -60,7 +60,7 @@ end subroutine collect_ipea1_xtb
 subroutine numdiff_grad(ctx, mol, calc, wfn, numgrad)
    type(context_type), intent(inout) :: ctx
    type(structure_type), intent(in) :: mol
-   type(xtb_calculator), intent(in) :: calc
+   type(xtb_calculator), intent(inout) :: calc
    type(wavefunction_type), intent(in) :: wfn
    real(wp), intent(out) :: numgrad(:, :)
 
@@ -94,7 +94,7 @@ end subroutine numdiff_grad
 subroutine numdiff_sigma(ctx, mol, calc, wfn, numsigma)
    type(context_type), intent(inout) :: ctx
    type(structure_type), intent(in) :: mol
-   type(xtb_calculator), intent(in) :: calc
+   type(xtb_calculator), intent(inout) :: calc
    type(wavefunction_type), intent(in) :: wfn
    real(wp), intent(out) :: numsigma(:, :)
 
