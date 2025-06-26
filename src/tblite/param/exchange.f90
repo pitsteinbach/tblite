@@ -7,8 +7,8 @@ module tblite_param_exchange
 
    public :: count
 
-    character(len=*), parameter :: exchange_label = "mulliken", average_label = "average_scheme" , exp_label = "expsmooth" , frscale_label = "frscale", &
-    & omega_label = "omega", lrscale_label = "lrscale"
+    character(len=*), parameter :: exchange_label = "mulliken", average_label = "average_scheme" , exp_label = "expsmooth" ,&
+    & frscale_label = "frscale", omega_label = "omega", lrscale_label = "lrscale"
 
     type, public, extends(serde_record) :: exchange_record
         !> fullrange scale for the K scale
