@@ -1,4 +1,4 @@
 [wrap-git]
 directory = gambits
 url = https://git.rwth-aachen.de/bannwarthlab/gambits.git
-revision = HEAD
+revision = 15b60721e65af90c1b80bd1e0457b3699867530e
