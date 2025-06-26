@@ -26,7 +26,7 @@ module tblite_scf_gambits_diis
    use tblite_scf_info, only : scf_info, not_used, orbital_resolved
    use tblite_scf_mixer_type, only : mixer_type
    use tblite_wavefunction, only : wavefunction_type
-   use iso_c_binding
+   use iso_c_binding, only : c_ptr, c_size_t
    implicit none
    private
 

@@ -24,7 +24,7 @@ module tblite_scf_gambits_broyden
    use gambits_api_broyden
    use tblite_scf_mixer_type, only : mixer_type
    use tblite_wavefunction, only : wavefunction_type
-   use iso_c_binding
+   use iso_c_binding, only : c_ptr, c_size_t
    implicit none
    private
 
@@ -71,7 +71,7 @@ subroutine new_gambits_broyden(self, ndim, memory, alpha, nao, prec, error)
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
 
-   call self%ctx%setup(1)
+   call self%ctx%setup(int(1, kind=c_size_t))
    self%ptr = c_new_broyden(self%ctx%ptr, ndim, memory, alpha, nao, prec)
    call self%update_ctx(self%ctx, error)
 end subroutine new_gambits_broyden

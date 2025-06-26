@@ -26,7 +26,6 @@ module tblite_scf_mixer_type
    use tblite_scf_mixer_input, only : mixer_kind
    use tblite_scf_utils, only : get_qat_from_qsh
    use tblite_wavefunction, only : wavefunction_type
-   use iso_c_binding, only : c_ptr, c_null_ptr
    implicit none
    private
 
@@ -248,21 +247,21 @@ subroutine next_mixer(self, iscf, wfn, error)
 end subroutine next_mixer
 
 
-function get_error_mixer(self, iscf) result(err)
+pure function get_error_mixer(self, iscf) result(error)
    !> Instance of the electronic mixer
-   class(mixers_type), intent(inout) :: self
+   class(mixers_type), intent(in) :: self
    !> Current iteration
    integer, intent(in) :: iscf
 
    integer :: channel
-   real(wp) :: err
+   real(wp) :: error
    real(wp) :: perr(size(self%kind))
 
    do channel = 1, size(self%mixer)
       perr(channel) = self%mixer(channel)%get_error(iscf)
    end do
 
-   err = maxval(abs(perr))
+   error = maxval(abs(perr))
 end function get_error_mixer
 
 subroutine cleanup_mixer(self)
@@ -312,7 +311,6 @@ subroutine set_mixer(self, wfn)
          call self%mixer(channel)%set(wfn%coeff(:,:,channel))
       end select
    end do
-
 end subroutine set_mixer
 
 subroutine diff_mixer(self, wfn, error)

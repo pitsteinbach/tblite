@@ -268,6 +268,6 @@ pure function get_error(self,iscf) result(error)
       error = error + self%dq(i)**2 / size(self%dq)
    end do
    error = sqrt(error)
- end function get_error
+end function get_error
 
 end module tblite_scf_mixer_broyden
