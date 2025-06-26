@@ -158,9 +158,11 @@ module tblite_mulliken_kfock
         if (allocated(self%omega)) then
             str= str // nl//indent//"Range separted exchange is used:"// &
             & nl//indent//" * Full-range scale: "//format_string(self%frscale,'(f5.2)')//nl//indent//&
-            & " * Omega: "//format_string(self%omega,'(f5.2)')//nl//indent//" * Long-range scale: "//format_string(self%lrscale,'(f5.2)')
+            & " * Omega: "//format_string(self%omega,'(f5.2)')//nl//indent//&
+            &" * Long-range scale: "//format_string(self%lrscale,'(f5.2)')
         else
-            str = str //nl//indent//"Full range exchange is used"// nl//indent//" * Full-range scale: "//format_string(self%frscale,'(f5.2)')
+            str = str //nl//indent//"Full range exchange is used"// nl//indent//&
+            &" * Full-range scale: "//format_string(self%frscale,'(f5.2)')
         end if
     end function info
     
@@ -373,7 +375,8 @@ module tblite_mulliken_kfock
         do spin = 1, size(wfn%density, 3)
              do iao = 1, size(wfn%density, 2)
                  do jao = 1, size(wfn%density, 1)
-                     exchange(self%ao2at(iao)) = exchange(self%ao2at(iao)) + ptr%prev_F(jao, iao, spin) * wfn%density(jao, iao, spin)
+                     exchange(self%ao2at(iao)) = exchange(self%ao2at(iao)) + &
+                        & ptr%prev_F(jao, iao, spin) * wfn%density(jao, iao, spin)
                  end do
              end do
          end do
