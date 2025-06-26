@@ -23,7 +23,6 @@ module tblite_scf_iterator
    use mctc_io, only : structure_type
    use tblite_basis_type, only : basis_type
    use tblite_container, only : container_cache, container_list
-   use tblite_context, only : context_type
    use tblite_disp, only : dispersion_type
    use tblite_integral_type, only : integral_type
    use tblite_wavefunction_type, only : wavefunction_type
@@ -44,12 +43,10 @@ module tblite_scf_iterator
 contains
 
 !> Evaluate self-consistent iteration for the density-dependent Hamiltonian
-subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
+subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
       & interactions, ints, pot, ccache, dcache, icache, energies, error)
    !> Current iteration count
    integer, intent(inout) :: iscf
-   !> Calculation context
-   type(context_type), intent(inout) :: ctx
    !> Molecular structure data
    type(structure_type), intent(in) :: mol
    !> Basis set information
@@ -90,9 +87,9 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    real(wp) :: ts
 
    if (iscf > 0 .and. (mixer%kind(1) == mixer_kind%broyden .or. mixer%kind(1) == mixer_kind%gambits_broyden)) then
-      call mixer%next_mixer(ctx, iscf, wfn, error)
+      call mixer%next_mixer(iscf, wfn, error)
+      call mixer%get_mixer(bas, wfn, error)
       if (allocated(error)) return
-      call mixer%get_mixer(ctx, bas, wfn, error)
    end if
 
    iscf = iscf + 1
@@ -108,12 +105,12 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    end if
    call add_pot_to_h1(bas, ints, pot, wfn%coeff)
 
-   call mixer%set_mixer(ctx, wfn, error)
+   call mixer%set_mixer(wfn)
 
    if (mixer%kind(1) == mixer_kind%gambits_diis .and. iscf > 1) then
-      call mixer%next_mixer(ctx, iscf, wfn, error)
+      call mixer%next_mixer(iscf, wfn, error)
+      call mixer%get_mixer(bas, wfn, error)
       if (allocated(error)) return
-      call mixer%get_mixer(ctx, bas, wfn, error)
    end if
 
    call get_density(wfn, solver, ints, ts, error)
@@ -128,7 +125,8 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
       & wfn%qpat)
 
-   call mixer%diff_mixer(ctx, wfn, error)
+   call mixer%diff_mixer(wfn, error)
+   if (allocated(error)) return
 
    allocate(eao(bas%nao), source=0.0_wp)
    call get_electronic_energy(ints%hamiltonian, wfn%density, eao)
