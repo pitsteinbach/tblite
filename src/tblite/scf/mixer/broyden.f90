@@ -257,18 +257,17 @@ subroutine lineq(a, c, info)
    endif
 end subroutine lineq
 
-function get_error(self, iscf) result(err)
-   class(broyden_mixer), intent(inout) :: self
+pure function get_error(self,iscf) result(error)
+   class(broyden_mixer), intent(in) :: self
    integer, intent(in) :: iscf
-
-   real(wp) :: err
+   real(wp) :: error
    integer :: i
 
-   err = 0.0_wp
+   error = 0.0_wp
    do i = 1, size(self%dq)
-      err = err + self%dq(i)**2 / size(self%dq)
+      error = error + self%dq(i)**2 / size(self%dq)
    end do
-   err = sqrt(err)
-end function get_error
+   error = sqrt(error)
+ end function get_error
 
 end module tblite_scf_mixer_broyden

@@ -70,7 +70,7 @@ module tblite_scf_mixer_type
    abstract interface
       !> Apply mixing to the density
       subroutine next(self, iscf, wfn, error)
-         import :: mixer_type, wavefunction_type, error_type, gambits_context_type
+         import :: mixer_type, wavefunction_type, error_type
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Iteration counter
@@ -83,7 +83,7 @@ module tblite_scf_mixer_type
 
       !> Set new density from 1D array
       subroutine set_1d(self, qvec)
-         import :: mixer_type, wp, error_type, gambits_context_type
+         import :: mixer_type, wp
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
@@ -92,7 +92,7 @@ module tblite_scf_mixer_type
 
       !> Set difference between new and old density from 1D array
       subroutine diff_1d(self, qvec)
-         import :: mixer_type, wp, error_type, gambits_context_type
+         import :: mixer_type, wp
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
@@ -101,7 +101,7 @@ module tblite_scf_mixer_type
 
       !> Get density as 1D array
       subroutine get_1d(self, qvec)
-         import :: mixer_type, wp, error_type, gambits_context_type
+         import :: mixer_type, wp
          !> Instance of the electronic mixer
          class(mixer_type), intent(inout) :: self
          !> Density vector
@@ -109,14 +109,14 @@ module tblite_scf_mixer_type
       end subroutine get_1d
 
       !> Get error metric from mixing
-      function get_error(self, iscf) result(err)
-         import :: mixer_type, error_type, gambits_context_type, wp
+      pure function get_error(self, iscf) result(error)
+         import :: mixer_type, wp
          !> Instance of the electronic mixer
-         class(mixer_type), intent(inout) :: self
+         class(mixer_type), intent(in) :: self
          !> Iteration counter
          integer, intent(in) :: iscf
          !> Error metric
-         real(wp) :: err
+         real(wp) :: error
       end function get_error
    end interface
 

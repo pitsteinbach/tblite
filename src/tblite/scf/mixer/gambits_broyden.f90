@@ -172,26 +172,26 @@ subroutine next_broyden_dp(self, iscf, wfn, error)
 end subroutine next_broyden_dp
 
 !> Get the density error
-function get_error_dp(self, iscf) result(err)
+pure function get_error_dp(self, iscf) result(error)
    !> Instance of the GAMBITS Broyden mixer
-   class(gambits_broyden_type), intent(inout) :: self
+   class(gambits_broyden_type), intent(in) :: self
    !> Current iteration
    integer, intent(in) :: iscf
 
-   real(dp) :: err
+   real(dp) :: error
 
-   err = get_broyden_error_dp(self%ctx%ptr, self%ptr, iscf, err)
+   error = get_broyden_error_dp(self%ctx%ptr, self%ptr, iscf, error)
 end function get_error_dp
 
-function get_error_sp(self, iscf) result(err)
+pure function get_error_sp(self, iscf) result(error)
    !> Instance of the GAMBITS Broyden mixer
-   class(gambits_broyden_type), intent(inout) :: self
+   class(gambits_broyden_type), intent(in) :: self
    !> Current iteration
    integer, intent(in) :: iscf
 
-   real(sp) :: err
+   real(sp) :: error
 
-   err = get_broyden_error_sp(self%ctx%ptr, self%ptr, iscf, err)
+   error = get_broyden_error_sp(self%ctx%ptr, self%ptr, iscf, error)
 end function get_error_sp
 
 subroutine cleanup(self)

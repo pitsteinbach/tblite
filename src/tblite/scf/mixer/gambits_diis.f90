@@ -200,29 +200,29 @@ subroutine next_diis_sp(self, iscf, wfn, error)
 end subroutine next_diis_sp
 
 !> Get the density error
-function get_error_dp(self, iscf) result(err)
+pure function get_error_dp(self, iscf) result(error)
    !> Instance of the GAMBITS DIIS mixer
-   class(gambits_diis_type), intent(inout) :: self
+   class(gambits_diis_type), intent(in) :: self
    !> Current iteration
    integer, intent(in) :: iscf
 
-   real(dp) :: err
+   real(dp) :: error
 
-   err = get_diis_error_dp(self%ctx%ptr, self%ptr, iscf, err)
-   err = err * (self%nspin*1.0)**2
+   error = get_diis_error_dp(self%ctx%ptr, self%ptr, iscf, error)
+   error = error * (self%nspin*1.0)**2
 end function get_error_dp
 
 !> Get the density error
-function get_error_sp(self, iscf) result(err)
+pure function get_error_sp(self, iscf) result(error)
    !> Instance of the GAMBITS DIIS mixer
-   class(gambits_diis_type), intent(inout) :: self
+   class(gambits_diis_type), intent(in) :: self
    !> Current iteration
    integer, intent(in) :: iscf
 
-   real(sp) :: err
+   real(sp) :: error
 
-   err = get_diis_error_sp(self%ctx%ptr, self%ptr, iscf, err)
-   err = err * (self%nspin*1.0)**2
+   error = get_diis_error_sp(self%ctx%ptr, self%ptr, iscf, error)
+   error = error * (self%nspin*1.0)**2
 end function get_error_sp
 
 subroutine cleanup(self)
