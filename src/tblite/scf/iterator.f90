@@ -25,6 +25,7 @@ module tblite_scf_iterator
    use tblite_container, only : container_cache, container_list
    use tblite_context, only : context_type
    use tblite_disp, only : dispersion_type
+   use tblite_exchange_type, only : exchange_type
    use tblite_integral_type, only : integral_type
    use tblite_wavefunction_type, only : wavefunction_type
    use tblite_wavefunction_mulliken, only : get_mulliken_shell_charges, &
@@ -45,7 +46,7 @@ contains
 
 !> Evaluate self-consistent iteration for the density-dependent Hamiltonian
 subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
-      & interactions, ints, pot, ccache, dcache, icache, energies, error)
+      & interactions, exchange, ints, pot, ccache, dcache, icache, ecache, energies, error)
    !> Current iteration count
    integer, intent(inout) :: iscf
    !> Calculation context
@@ -68,7 +69,8 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    class(dispersion_type), intent(in), optional :: dispersion
    !> Container for general interactions
    type(container_list), intent(in), optional :: interactions
-
+   !> Container for exchange interactions
+   class(exchange_type), intent(in), optional :: exchange
    !> Integral container
    type(integral_type), intent(in) :: ints
    !> Density dependent potential shifts
@@ -79,6 +81,8 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    type(container_cache), intent(inout), optional :: dcache
    !> Restart data for interaction containers
    type(container_cache), intent(inout), optional :: icache
+   !> Restart data for Mulliken exchange
+   type(container_cache), intent(inout), optional :: ecache
 
    !> Self-consistent energy
    real(wp), intent(inout) :: energies(:)
@@ -105,6 +109,9 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    end if
    if (present(interactions) .and. present(icache)) then
       call interactions%get_potential(mol, icache, wfn, pot)
+   end if
+   if (present(exchange) .and. iscf > 1) then 
+       call exchange%get_potential_w_overlap(mol, ecache, wfn, pot, ints%overlap)
    end if
    call add_pot_to_h1(bas, ints, pot, wfn%coeff)
 
@@ -143,6 +150,9 @@ subroutine next_scf(iscf, ctx, mol, bas, wfn, solver, mixer, info, coulomb, disp
    end if
    if (present(interactions) .and. present(icache)) then
       call interactions%get_energy(mol, icache, wfn, energies)
+   end if
+   if (present(exchange).and. iscf > 1) then 
+      call exchange%get_energy(mol, ecache, wfn, energies)
    end if
 end subroutine next_scf
 

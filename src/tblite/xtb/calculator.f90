@@ -35,6 +35,8 @@ module tblite_xtb_calculator
    use tblite_coulomb_thirdorder, only : new_onsite_thirdorder
    use tblite_disp, only : dispersion_type, d4_dispersion, new_d4_dispersion, &
       & d3_dispersion, new_d3_dispersion
+   use tblite_exchange_type, only : exchange_type
+   use tblite_exchange, only : new_exchange
    use tblite_ncoord, only : ncoord_type, new_ncoord
    use tblite_param, only : param_record
    use tblite_repulsion, only : new_repulsion
@@ -70,6 +72,8 @@ module tblite_xtb_calculator
       type(halogen_correction), allocatable :: halogen
       !> London-dispersion interaction
       class(dispersion_type), allocatable :: dispersion
+      !> Exchange interactions
+      class(exchange_type), allocatable :: exchange
       !> Parameter for self-consistent iteration mixing
       type(mixer_input) :: mixer_info
       !> Maximum number of self-consistent iteractions
@@ -151,6 +155,7 @@ subroutine new_xtb_calculator(calc, mol, param, error)
    call add_halogen(calc, mol, param, irc)
    call add_dispersion(calc, mol, param)
    call add_coulomb(calc, mol, param, irc)
+   call add_exchange(calc, mol, param, irc)
 
    calc%method = "custom"
 
@@ -200,6 +205,26 @@ subroutine add_basis(calc, mol, param, irc)
    call new_basis(calc%bas, mol, nsh_id, cgto, 1.0_wp)
 
 end subroutine add_basis
+
+subroutine add_exchange(calc, mol, param, irc)
+   !> Instance of the xTB evaluator
+   type(xtb_calculator), intent(inout) :: calc
+   !> Molecular structure data
+   type(structure_type), intent(in) :: mol
+   !> Parametrization records
+   type(param_record), intent(in) :: param
+   !> Record identifiers
+   integer, intent(in) :: irc(:)
+   !> Chemical hardness sorted by shell 
+   real(wp),allocatable :: hardness(:)
+
+   if (allocated(param%exchange)) then 
+      call get_shell_hardness_non_unique(mol, param, irc, hardness)
+      associate(par => param%exchange)
+      call new_exchange(calc%exchange, mol, hardness, par, calc%bas) 
+      end associate
+   end if
+end subroutine add_exchange
 
 
 subroutine add_ncoord(calc, mol, param)
@@ -405,6 +430,35 @@ subroutine get_shell_hardness(mol, param, irc, hardness)
    end do
 end subroutine get_shell_hardness
 
+subroutine get_shell_hardness_non_unique(mol, param, irc, hardness)
+   !> Molecular structure data
+   type(structure_type), intent(in) :: mol
+   !> Parametrization records
+   type(param_record), intent(in) :: param
+   !> Record identifiers
+   integer, intent(in) :: irc(:)
+   !> Shell resolved hardness parameters
+   real(wp), allocatable, intent(out) :: hardness(:)
+
+   integer :: isp, ir, ish, il, nsh, count
+   nsh = 0
+   do isp = 1 , mol%nat
+      ir = irc(mol%id(isp))
+      nsh = nsh + param%record(ir)%nsh
+   end do 
+
+   allocate(hardness(nsh),source=0.0_wp)
+   count = 0
+   do isp = 1 , mol%nat
+      ir = irc(mol%id(isp))
+      do ish = 1, param%record(ir)%nsh
+         il = param%record(ir)%lsh(ish)
+         count = count + 1
+         hardness(count) = param%record(ir)%gam * param%record(ir)%lgam(ish)
+      end do
+   end do
+
+end subroutine get_shell_hardness_non_unique
 
 subroutine get_hubbard_derivs(mol, param, irc, hubbard_derivs)
    !> Molecular structure data
@@ -667,6 +721,11 @@ pure function variable_info(self) result(info)
       info = max(info, self%interactions%variable_info())
    end if
 
+   if (allocated(self%exchange)) then
+      info =  max(info, self%exchange%variable_info())
+   end if
+
+
 end function variable_info
 
 
@@ -699,6 +758,10 @@ pure function info(self, verbosity, indent) result(str)
 
    if (allocated(self%interactions)) then
       str = str // nl // indent // self%interactions%info(verbosity, indent)
+   end if
+
+   if (allocated(self%exchange)) then
+      str = str // nl // indent // self%exchange%info(verbosity, indent)
    end if
 end function info
 

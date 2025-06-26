@@ -100,7 +100,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    real(wp), allocatable :: selfenergy(:), dsedcn(:), lattr(:, :), wdensity(:, :, :)
    type(integral_type) :: ints
    type(potential_type) :: pot
-   type(container_cache), allocatable :: ccache, dcache, icache, hcache, rcache
+   type(container_cache), allocatable :: ccache, dcache, icache, hcache, rcache, ecache
    type(mixers_type) :: mixers
    type(timer_type) :: timer
    type(error_type), allocatable :: error
@@ -193,6 +193,13 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call timer%pop
    end if
 
+   if (allocated(calc%exchange)) then
+      call timer%push("exchange")
+      allocate(ecache)
+      call calc%exchange%update(mol, ecache)
+      call timer%pop
+   end if 
+
    call new_potential(pot, mol, calc%bas, wfn%nspin)
    if (allocated(calc%coulomb)) then
       allocate(ccache)
@@ -253,8 +260,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    do while(.not.converged .and. iscf < calc%max_iter)
       elast = sum(eelec)
       call next_scf(iscf, ctx, mol, calc%bas, wfn, solver, mixers, &
-         & info, calc%coulomb, calc%dispersion, calc%interactions, ints, &
-         & pot, ccache, dcache, icache, eelec, error)
+         & info, calc%coulomb, calc%dispersion, calc%interactions, calc%exchange, &
+         ints, pot, ccache, dcache, icache, ecache, eelec, error)
       econverged = abs(sum(eelec) - elast) < econv
       pconverged = mixers%get_error_mixer(iscf, error, ctx) < pconv
       converged = econverged .and. pconverged
@@ -315,6 +322,12 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       if (allocated(calc%interactions)) then
          call timer%push("interactions")
          call calc%interactions%get_gradient(mol, icache, wfn, gradient, sigma)
+         call timer%pop
+      end if
+
+      if (allocated(calc%exchange)) then
+         call timer%push("exchange")
+         call calc%exchange%get_gradient(mol, ecache, wfn, gradient, sigma)
          call timer%pop
       end if
 

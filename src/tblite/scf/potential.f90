@@ -56,6 +56,8 @@ module tblite_scf_potential
       real(wp), allocatable :: dvshdr(:, :, :, :)
       !> Lattice vector derivative of shell-resolved charge-dependent potential shift
       real(wp), allocatable :: dvshdL(:, :, :, :)
+      !> Orbital resolved exchange contribution to the Fock matrix
+      real(wp), allocatable :: kao(:, :, :)
    contains
       !> Reset the density dependent potential
       procedure :: reset
@@ -139,6 +141,10 @@ subroutine add_pot_to_h1(bas, ints, pot, h1)
    call add_vmp_to_h1(bas, ints%quadrupole, pot%vqp, h1)
 
    call magnet_to_updown(h1)
+
+   if (allocated(pot%kao)) then 
+      call add_kao_to_h1(bas, pot%kao, h1)
+   end if
 end subroutine add_pot_to_h1
 
 !> Expand an atom-resolved potential shift to a shell-resolved potential shift
@@ -186,6 +192,28 @@ subroutine add_vsh_to_vao(bas, vsh, vao)
       end do
    end do
 end subroutine add_vsh_to_vao
+
+!> Add Mulliken approximated exchange to the potential 
+subroutine add_kao_to_h1(bas, kao, h1)
+   !> Basis set information
+   type(basis_type), intent(in) :: bas
+   !> K terms, orbital resolved
+   real(wp), intent(in) :: kao(:, :, :)
+   !> Effective Hamiltonian
+   real(wp), intent(inout) :: h1(:, :, :)
+   integer :: iao, jao, spin
+
+   !!! $omp parallel do collapse(3) schedule(runtime) default(none) &
+   !!! $omp shared(h1, bas, kao) private(spin, iao, jao)
+   do spin = 1, size(h1, 3)
+      do iao = 1, bas%nao
+         do jao = 1, bas%nao
+            h1(jao, iao, spin) = h1(jao, iao, spin) &
+               & + kao(jao, iao, spin)
+         end do
+      end do
+   end do
+end subroutine
 
 
 !> Add a charge-dependent potential to the Hamiltonian

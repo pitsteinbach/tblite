@@ -28,6 +28,7 @@ module tblite_param_mask
    use tblite_param_hamiltonian, only : hamiltonian_mask, count
    use tblite_param_multipole, only : multipole_mask, count
    use tblite_param_repulsion, only : repulsion_mask, count
+   use tblite_param_exchange, only : exchange_record, exchange_mask, count
    use tblite_param_serde, only : serde_record
    use tblite_param_thirdorder, only : thirdorder_mask, count
    use tblite_toml, only : toml_table, toml_array, toml_key, get_value, set_value, &
@@ -42,6 +43,7 @@ module tblite_param_mask
       logical :: hamiltonian = .false.
       logical :: dispersion = .false.
       logical :: repulsion = .false.
+      logical :: exchange = .false.
       logical :: charge = .false.
       logical :: multipole = .false.
       logical :: halogen = .false.
@@ -57,6 +59,8 @@ module tblite_param_mask
       type(dispersion_mask), allocatable :: dispersion
       !> Definition of the repulsion contribution
       type(repulsion_mask), allocatable :: repulsion
+      !> Definition of the exchange interaction
+      type(exchange_mask), allocatable :: exchange
       !> Definition of the isotropic second-order charge interactions
       type(charge_mask), allocatable :: charge
       !> Definition of the anisotropic second-order multipolar interactions
@@ -113,6 +117,12 @@ subroutine load_from_toml(self, table, error)
    allowed%repulsion = associated(child)
    if (associated(child)) then
       allocate(self%repulsion)
+   end if
+
+   call get_value(table, "exchange", child, requested=.false.)
+   allowed%exchange = associated(child)
+   if (associated(child)) then
+      allocate(self%thirdorder)
    end if
 
    call get_value(table, "halogen", child, requested=.false.)
@@ -325,6 +335,10 @@ subroutine dump_to_toml(self, table, error)
       call add_table(table, "repulsion", child)
    end if
 
+   if (allocated(self%exchange)) then
+      call add_table(table, "exchange", child)
+   end if
+
    if (allocated(self%halogen)) then
       call add_table(table, "halogen", child)
    end if
@@ -435,6 +449,7 @@ elemental function count_mask(mask) result(ncount)
    if (allocated(mask%charge)) ncount = ncount + count(mask%charge)
    if (allocated(mask%multipole)) ncount = ncount + count(mask%multipole)
    if (allocated(mask%thirdorder)) ncount = ncount + count(mask%thirdorder)
+   if (allocated(mask%exchange)) ncount = ncount + count(mask%exchange)
    if (allocated(mask%record)) ncount = ncount + sum(count(mask%record))
 end function count_mask
 
