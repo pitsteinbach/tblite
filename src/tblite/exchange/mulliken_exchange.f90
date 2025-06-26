@@ -306,7 +306,7 @@ module tblite_mulliken_kfock
         !call self%timer%push("Mulliken K-Fock")
         
         !call self%timer%pop()
-        if (self%incremental) then
+        if (self%incremental == 1) then
             if (.not.allocated(ptr%ref_D)) then
                 !!do full Fock build in double precision
                 if (debug) write(*,*) "Full K Build!"
