@@ -1,4 +1,4 @@
-module tblite_mulliken_kfock_cpp
+module tblite_mulliken_kfock
     use mctc_env, only : wp, dp
     use mctc_io, only : structure_type
     use tblite_exchange_type, only : exchange_type
@@ -17,7 +17,7 @@ module tblite_mulliken_kfock_cpp
     logical :: debug = .false.
     public :: new_mulliken_exchange
     
-    type,public, extends(exchange_type) :: mulliken_kfock_type_cpp
+    type, public, extends(exchange_type) :: mulliken_kfock_type
     !> allow single point precision, 0 false , 1 true
     integer :: allowsingle
     !> wether the fock matrix is build in incremental fashion, 0 false, 1 true
@@ -146,7 +146,7 @@ module tblite_mulliken_kfock_cpp
         pure function info(self, verbosity, indent) result(str)
         use tblite_output_format, only : format_string
         !> Instance of the interaction container
-        class(mulliken_kfock_type_cpp), intent(in) :: self
+        class(mulliken_kfock_type), intent(in) :: self
         !> Verbosity level
         integer, intent(in) :: verbosity
         !> Indentation level
@@ -167,7 +167,7 @@ module tblite_mulliken_kfock_cpp
     !> Update cache from container
     subroutine update(self, mol, cache)
         !> Instance of the multipole container
-        class(mulliken_kfock_type_cpp), intent(in) :: self
+        class(mulliken_kfock_type), intent(in) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
         !> Reusable data container
@@ -221,7 +221,7 @@ module tblite_mulliken_kfock_cpp
     subroutine new_range_separated_mulliken_k_fock(self, mol, hardness, allowsingle, incremental, frscale, &
         & omega, lrscale, average, exp, bas)
         !> Instance of the multipole container
-        type(mulliken_kfock_type_cpp), intent(out) :: self
+        type(mulliken_kfock_type), intent(out) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
         !> Chemical hardness sorted by shells
@@ -282,7 +282,7 @@ module tblite_mulliken_kfock_cpp
     
     subroutine get_potential_w_overlap(self, mol, cache, wfn, pot, overlap)
         !> Instance of the exchange container
-        class(mulliken_kfock_type_cpp), intent(in) :: self
+        class(mulliken_kfock_type), intent(in) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
         !> Tight-binding wavefunction data
@@ -352,7 +352,7 @@ module tblite_mulliken_kfock_cpp
     subroutine get_energy(self, mol, cache, wfn, energies)
         use tblite_blas, only : gemm
         !> Instance of the exchange container
-        class(mulliken_kfock_type_cpp), intent(in) :: self
+        class(mulliken_kfock_type), intent(in) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
         !> Wavefunction data
@@ -393,7 +393,7 @@ module tblite_mulliken_kfock_cpp
     
     subroutine get_gradient_w_overlap(self, mol, cache, wfn, gradient, ao_grad, overlap)
         !> Instance of the exchange container
-        class(mulliken_kfock_type_cpp), intent(inout) :: self
+        class(mulliken_kfock_type), intent(inout) :: self
         !> Molecular structure data
         type(structure_type), intent(in) :: mol
         !> Wavefunction data
@@ -432,7 +432,7 @@ module tblite_mulliken_kfock_cpp
 pure function variable_info(self) result(info)
     use tblite_scf_info, only : scf_info, atom_resolved, orbital_resolved, not_used
     !> Instance of the electrostatic container
-    class(mulliken_kfock_type_cpp), intent(in) :: self
+    class(mulliken_kfock_type), intent(in) :: self
     !> Information on the required potential data
     type(scf_info) :: info
     
@@ -441,7 +441,7 @@ end function variable_info
 
 subroutine delete(self)
     !> Instance of the exchange container
-    class(mulliken_kfock_type_cpp), intent(inout) :: self
+    class(mulliken_kfock_type), intent(inout) :: self
     !> Delete indexer object
     call DeleteIndexer(self%indexer)
     !> Delete exchange object
@@ -469,4 +469,4 @@ subroutine delete(self)
 end subroutine delete
 
 
-end module tblite_mulliken_kfock_cpp
+end module tblite_mulliken_kfock

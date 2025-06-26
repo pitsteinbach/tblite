@@ -1,7 +1,6 @@
 module tblite_exchange
    use mctc_env, only : wp
    use tblite_mulliken_kfock, only : mulliken_kfock_type, new_mulliken_exchange
-   use tblite_mulliken_kfock_cpp, only : mulliken_kfock_type_cpp, new_mulliken_exchange
    use mctc_io, only : structure_type
    use tblite_param_exchange, only : exchange_record
    use tblite_exchange_type, only : exchange_type
@@ -22,7 +21,7 @@ subroutine new_exchange(self, mol, hardness, par, bas)
 
    if (par%mulliken) then
       block
-         type(mulliken_kfock_type_cpp), allocatable :: tmp
+         type(mulliken_kfock_type), allocatable :: tmp
          allocate(tmp)
          call new_mulliken_exchange(tmp, mol, hardness, .true., par%allowincr, par%frscale, &
             & par%omega, par%lrscale, par%average, par%expsmooth, bas)

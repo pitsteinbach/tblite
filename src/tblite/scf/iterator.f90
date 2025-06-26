@@ -36,6 +36,7 @@ module tblite_scf_iterator
    use tblite_scf_solver, only : solver_type
    use tblite_purification_solver, only : purification_solver 
    use tblite_timer, only : timer_type, format_time
+   use tblite_exchange_type, only : exchange_type
    implicit none
    private
 
@@ -46,7 +47,7 @@ contains
 
 !> Evaluate self-consistent iteration for the density-dependent Hamiltonian
 subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
-      & interactions, ints, pot, ccache, dcache, icache, &
+      & interactions, exchange, ints, pot, cache, dcache, icache, ecache, &
       & energies, error)
    !> Current iteration count
    integer, intent(inout) :: iscf
@@ -68,17 +69,21 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    class(dispersion_type), intent(in), optional :: dispersion
    !> Container for general interactions
    type(container_list), intent(in), optional :: interactions
+   !> Container for exchange interactions
+   class(exchange_type), intent(in), optional :: exchange
 
    !> Integral container
    type(integral_type), intent(in) :: ints
    !> Density dependent potential shifts
    type(potential_type), intent(inout) :: pot
    !> Restart data for coulombic interactions
-   type(container_cache), intent(inout), optional :: ccache
+   type(container_cache), intent(inout) :: cache
    !> Restart data for dispersion interactions
-   type(container_cache), intent(inout), optional :: dcache
+   type(container_cache), intent(inout) :: dcache
    !> Restart data for interaction containers
-   type(container_cache), intent(inout), optional :: icache
+   type(container_cache), intent(inout) :: icache
+   !> Restart data for Mulliken exchange
+   type(container_cache), intent(inout) :: ecache
 
    !> Self-consistent energy
    real(wp), intent(inout) :: energies(:)
@@ -88,8 +93,9 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
 
    real(wp), allocatable :: eao(:)
    real(wp) :: ts
-   
-   if (iscf > 0) then
+   if (present(exchange)) then 
+
+   if (iscf > 1) then
       call mixer%next(error)
       if (allocated(error)) return
       call get_mixer(mixer, bas, wfn, info)
@@ -97,18 +103,21 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
 
    iscf = iscf + 1
    call pot%reset
-   if (present(coulomb) .and. present(ccache)) then
-      call coulomb%get_potential(mol, ccache, wfn, pot)
+   if (present(coulomb)) then
+      call coulomb%get_potential(mol, cache, wfn, pot)
    end if
-   if (present(dispersion) .and. present(dcache)) then
+   if (present(dispersion)) then
       call dispersion%get_potential(mol, dcache, wfn, pot)
    end if
-   if (present(interactions) .and. present(icache)) then
+   if (present(interactions)) then
       call interactions%get_potential(mol, icache, wfn, pot)
    end if
+   if (present(exchange) .and. iscf > 1) then 
+      call exchange%get_potential_w_overlap(mol, ecache, wfn, pot, ints%overlap)
+   end if
    call add_pot_to_h1(bas, ints, pot, wfn%coeff)
-
-   call set_mixer(mixer, wfn, info)
+   
+   if (iscf > 1) call set_mixer(mixer, wfn, info)
 
    call get_density(wfn, solver, ints, ts, error)
    if (allocated(error)) return
@@ -122,21 +131,79 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
       & wfn%qpat)
 
-   call diff_mixer(mixer, wfn, info)
+   if (iscf > 1) call  diff_mixer(mixer, wfn, info)
 
    allocate(eao(bas%nao), source=0.0_wp)
    call get_electronic_energy(ints%hamiltonian, wfn%density, eao)
 
    energies(:) = ts / size(energies)
    call reduce(energies, eao, bas%ao2at)
-   if (present(coulomb) .and. present(ccache)) then
-      call coulomb%get_energy(mol, ccache, wfn, energies)
+   if (present(coulomb)) then
+      call coulomb%get_energy(mol, cache, wfn, energies)
    end if
-   if (present(dispersion) .and. present(dcache)) then
+   if (present(dispersion)) then
       call dispersion%get_energy(mol, dcache, wfn, energies)
    end if
-   if (present(interactions) .and. present(icache)) then
+   if (present(interactions)) then
       call interactions%get_energy(mol, icache, wfn, energies)
+   end if
+   if (present(exchange).and. iscf > 1) then 
+      call exchange%get_energy(mol, ecache, wfn, energies)
+   end if
+   else
+      if (iscf > 0) then
+         call mixer%next(error)
+         if (allocated(error)) return
+         call get_mixer(mixer, bas, wfn, info)
+      end if
+   
+      iscf = iscf + 1
+      call pot%reset
+      if (present(coulomb)) then
+         call coulomb%get_potential(mol, cache, wfn, pot)
+      end if
+      if (present(dispersion)) then
+         call dispersion%get_potential(mol, dcache, wfn, pot)
+      end if
+      if (present(interactions)) then
+         call interactions%get_potential(mol, icache, wfn, pot)
+      end if
+     
+      call add_pot_to_h1(bas, ints, pot, wfn%coeff)
+      
+      call set_mixer(mixer, wfn, info)
+   
+      call get_density(wfn, solver, ints, ts, error)
+      if (allocated(error)) return
+   
+      call get_mulliken_shell_charges(bas, ints%overlap, wfn%density, wfn%n0sh, &
+         & wfn%qsh)
+      call get_qat_from_qsh(bas, wfn%qsh, wfn%qat)
+   
+      call get_mulliken_atomic_multipoles(bas, ints%dipole, wfn%density, &
+         & wfn%dpat)
+      call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
+         & wfn%qpat)
+   
+      call  diff_mixer(mixer, wfn, info)
+   
+      allocate(eao(bas%nao), source=0.0_wp)
+      call get_electronic_energy(ints%hamiltonian, wfn%density, eao)
+   
+      energies(:) = ts / size(energies)
+      call reduce(energies, eao, bas%ao2at)
+      if (present(coulomb)) then
+         call coulomb%get_energy(mol, cache, wfn, energies)
+      end if
+      if (present(dispersion)) then
+         call dispersion%get_energy(mol, dcache, wfn, energies)
+      end if
+      if (present(interactions)) then
+         call interactions%get_energy(mol, icache, wfn, energies)
+      end if
+      if (present(exchange).and. iscf > 1) then 
+         call exchange%get_energy(mol, ecache, wfn, energies)
+      end if
    end if
 end subroutine next_scf
 
@@ -192,7 +259,7 @@ end subroutine get_qat_from_qsh
 
 
 function get_mixer_dimension(mol, bas, info) result(ndim)
-   use tblite_scf_info, only : atom_resolved, shell_resolved
+   use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
    type(structure_type), intent(in) :: mol
    type(basis_type), intent(in) :: bas
    type(scf_info), intent(in) :: info
@@ -216,10 +283,17 @@ function get_mixer_dimension(mol, bas, info) result(ndim)
    case(atom_resolved)
       ndim = ndim + 6*mol%nat
    end select
+
+   select case(info%density)
+   case(orbital_resolved)
+      ndim = ndim + bas%nao*bas%nao
+   end select
+
+   write(*,*) ndim
 end function get_mixer_dimension
 
 subroutine set_mixer(mixer, wfn, info)
-   use tblite_scf_info, only : atom_resolved, shell_resolved
+   use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
    class(mixer_type), intent(inout) :: mixer
    type(wavefunction_type), intent(in) :: wfn
    type(scf_info), intent(in) :: info
@@ -240,10 +314,15 @@ subroutine set_mixer(mixer, wfn, info)
    case(atom_resolved)
       call mixer%set(wfn%qpat)
    end select
+
+   select case(info%density)
+   case(orbital_resolved)
+      call mixer%set(wfn%density(:,:,1))
+   end select
 end subroutine set_mixer
 
 subroutine diff_mixer(mixer, wfn, info)
-   use tblite_scf_info, only : atom_resolved, shell_resolved
+   use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
    class(mixer_type), intent(inout) :: mixer
    type(wavefunction_type), intent(in) :: wfn
    type(scf_info), intent(in) :: info
@@ -264,10 +343,15 @@ subroutine diff_mixer(mixer, wfn, info)
    case(atom_resolved)
       call mixer%diff(wfn%qpat)
    end select
+
+   select case(info%density)
+   case(orbital_resolved)
+      call mixer%diff(wfn%density(:,:,1))
+   end select
 end subroutine diff_mixer
 
 subroutine get_mixer(mixer, bas, wfn, info)
-   use tblite_scf_info, only : atom_resolved, shell_resolved
+   use tblite_scf_info, only : atom_resolved, shell_resolved, orbital_resolved
    class(mixer_type), intent(inout) :: mixer
    type(basis_type), intent(in) :: bas
    type(wavefunction_type), intent(inout) :: wfn
@@ -289,6 +373,12 @@ subroutine get_mixer(mixer, bas, wfn, info)
    select case(info%quadrupole)
    case(atom_resolved)
       call mixer%get(wfn%qpat)
+   end select
+
+   select case(info%density)
+   case(orbital_resolved)
+      call mixer%get(wfn%density(:,:,1))
+      write(*,*) wfn%density(1,1,1)
    end select
 end subroutine get_mixer
 
@@ -340,9 +430,9 @@ subroutine get_density_from_coeff(wfn, solver, ints, ts, error)
    real(wp) :: e_fermi = 0.0_wp, stmp(2)
    real(wp), allocatable :: focc(:)
    integer :: spin
+
    select case(wfn%nspin)
    case default
-     
       call solver%solve(wfn%coeff(:, :, 1), ints%overlap, wfn%emo(:, 1), error)
       if (allocated(error)) return
 
