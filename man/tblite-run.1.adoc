@@ -104,6 +104,22 @@ Supported geometry input formats are:
      Number of iterations for converging the electronic structure.
      Default: 250.
 
+*--mixer* _string_::
+     Set the type of convergence accelerator (mixer) possible options:
+     broyden (default), gambits-broyden, gambits-diis.
+
+*--mixer-memory _int_:: 
+     Number of past iterations to be used by the mixer.
+
+*--mixer-precision _string_::
+     Precision to be used by the mixer: single (default) or double
+
+*--mixer-runmode _string_::
+     Mixer runmode: default (size-dependent), cpu or gpu
+
+*--mixer-damping _real_::
+     Damping factor for mixing (default: 0.4)
+
 *--solver* _name_::
      Electronic solver for SCF, possible options:
      _gvd_ (default), and _gvr_
