@@ -18,6 +18,10 @@ subdir('unit')
 subdir('cli')
 subdir('validation')
 
+if get_option('gpu')
+  subdir('unit_gpu')
+endif
+
 if get_option('api')
   subdir('api')
 endif

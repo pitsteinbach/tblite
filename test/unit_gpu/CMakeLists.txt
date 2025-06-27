@@ -14,11 +14,34 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
-if(WITH_API)
-  add_subdirectory("api")
-endif()
-add_subdirectory("unit")
+# Unit testing for GPU implementations
+set(
+  test-srcs
+  "main.f90"
+)
 
 if(GPU)
-  add_subdirectory("unit_gpu")
+  list(APPEND tests "mixers_gpu")
+else()
+  list(APPEND test-srcs "test_mixers_gpu.f90")
 endif()
+
+foreach(t IN LISTS tests)
+  string(MAKE_C_IDENTIFIER ${t} t) 
+  list(APPEND test-srcs "test_${t}.f90")
+endforeach()
+
+add_executable(
+  "${PROJECT_NAME}-tester"
+  "${test-srcs}"
+)
+target_link_libraries(
+  "${PROJECT_NAME}-tester"
+  PRIVATE
+  "${PROJECT_NAME}-lib"
+  "mstore::mstore"
+)
+
+foreach(t IN LISTS tests)
+  add_test("${PROJECT_NAME}/${t}" "${PROJECT_NAME}-tester" "${t}")
+endforeach()

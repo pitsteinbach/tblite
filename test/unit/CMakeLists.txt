@@ -55,12 +55,6 @@ set(
   "main.f90"
 )
 
-if(GPU)
-  list(APPEND tests "mixers_gpu")
-else()
-  list(APPEND test-srcs "test_mixers_gpu.f90")
-endif()
-
 foreach(t IN LISTS tests)
   string(MAKE_C_IDENTIFIER ${t} t) 
   list(APPEND test-srcs "test_${t}.f90")

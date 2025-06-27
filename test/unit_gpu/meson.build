@@ -29,44 +29,17 @@ if not mstore_dep.found()
   subdir_done()
 endif
 
-tests = [
-  'cgto-ortho',
-  'coulomb-charge',
-  'coulomb-multipole',
-  'coulomb-thirdorder',
-  'double-dictionary',
-  'fit',
-  'gfn1-xtb',
-  'gfn2-xtb',
-  'ceh',
-  'hamiltonian',
-  'halogen',
-  'integral-overlap',
-  'integral-multipole',
-  'ipea1-xtb',
-  'mixers',
-  'ncoord',
-  'npy',
-  'npz',
-  'post-processing',
-  'repulsion',
-  'slater-expansion',
-  'spin',
-  'solvation-born',
-  'solvation-cpcm',
-  'solvation-surface',
-  'solvation-cds',
-  'solvation-shift',
-  'tagged-io',
-  'wavefunction-restart',
-  'xtb-param',
-  'xtb-external',
-  'xtbml',
-]
+tests = []
 
 test_srcs = files(
   'main.f90',
 )
+
+if (gpu)
+  tests += 'mixers_gpu'
+else
+  test_srcs += 'test_mixers_gpu.f90'
+endif
 
 foreach t : tests
   test_srcs += files('test_@0@.f90'.format(t.underscorify()))
