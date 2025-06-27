@@ -221,7 +221,7 @@ jobs:
     - name: Build library (fpm)
       if: ${{ matrix.toolchain.build == 'fpm' }}
       run: |
-        export FPM_CXXFLAGS=-DW_MKL
+        export FPM_CXXFLAGS="-DW_MKL -std=c++17"
         echo "FPM_CXXFLAGS=$FPM_CXXFLAGS" >> $GITHUB_ENV
         fpm --version
         fpm build
