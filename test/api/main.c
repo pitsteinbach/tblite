@@ -2613,12 +2613,6 @@ int test_post_processing_api()
     if (tblite_check(error))
         goto err;
 
-    tblite_push_back_post_processing_str(ctx, calc, "bond-orders");
-    if (!tblite_check(ctx))
-        goto err;
-
-    show(ctx);
-
     calc = tblite_new_gfn1_calculator(ctx, mol);
     if (!calc)
         goto err;
