@@ -22,7 +22,7 @@
 
 !> Routines to set up electronic mixers
 module tblite_scf_mixer
-   use gambits_api_context, only : gambits_context_type
+   use gambits, only : gambits_context_type
    use mctc_env, only : wp, sp, dp, error_type
    use mctc_io, only : structure_type
    use tblite_basis, only : basis_type
@@ -43,7 +43,7 @@ module tblite_scf_mixer
 contains
 
 !> Create a new instance of the mixer
-subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel, error)
+subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, error)
    !> Instance of the mixer on exit
    class(mixers_type), intent(out) :: self
    !> Calculation context
@@ -60,8 +60,6 @@ subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel,
    real(wp), intent(in) :: overlap(:,:)
    !> Information on wavefunction data used to construct Hamiltonian
    type(scf_info), intent(inout) :: info
-   !> Verbosity level
-   integer, intent(in) :: prlevel
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
 
@@ -86,15 +84,10 @@ subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel,
       self%kind = mixer_kind%broyden
 
       case(mixer_kind%gambits_broyden)
-      if (.not. allocated(self%ctx)) then
-         allocate(self%ctx)
-         call self%ctx%setup(int(prlevel,kind=c_size_t))
-      end if
-
       block
          type(gambits_broyden_type), allocatable :: mixer
          allocate(mixer)
-         call new_gambits_broyden(mixer, self%ctx, nspin*ndim, input%memory(input%kind), input%damp, nao, prec, error)
+         call new_gambits_broyden(mixer, nspin*ndim, input%memory(input%kind), input%damp, nao, prec, error)
          mixer%info = info
          allocate(self%mixer(1),source=mixer)
       end block
@@ -105,16 +98,11 @@ subroutine new_mixer(self, ctx, input, ndim, nao, nspin, overlap, info, prlevel,
       self%kind = mixer_kind%gambits_broyden
 
       case(mixer_kind%gambits_diis)
-      if (.not. allocated(self%ctx)) then
-         allocate(self%ctx)
-         call self%ctx%setup(int(prlevel,kind=c_size_t))
-      end if
-
       block
          type(gambits_diis_type), allocatable :: mixer(:)
          allocate(mixer(nspin))
          do i=1,nspin
-            call new_gambits_diis(mixer(i), self%ctx, nao**2, input%memory(input%kind), input%damp, overlap, nao, &
+            call new_gambits_diis(mixer(i), nao**2, input%memory(input%kind), input%damp, overlap, nao, &
                & input%runmode, prec, input%prec, error)
             if (allocated(error)) return
             if (len(mixer(i)%msg) > 0) call ctx%message(mixer(i)%msg)

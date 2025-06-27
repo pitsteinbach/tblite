@@ -19,7 +19,6 @@
 
 !> Implementation of a modified Broyden mixing
 module tblite_scf_mixer_broyden
-   use gambits_api_context, only : gambits_context_type
    use mctc_env, only : wp, error_type, fatal_error
    use tblite_lapack, only : getrf, getrs
    use tblite_scf_mixer_input, only : mixer_input
@@ -90,30 +89,22 @@ subroutine new_broyden(self, ndim, input)
 end subroutine new_broyden
 
 !> Set new density from 1D array
-subroutine set_1d(self, qvec, error, ctx)
+subroutine set_1d(self, qvec)
    !> Instance of the Broyden mixer
    class(broyden_mixer), intent(inout) :: self
    !> Density vector
    real(wp), intent(in) :: qvec(:)
-   !> Error handling
-   type(error_type), allocatable, intent(out) :: error
-   !> GAMBITS context
-   type(gambits_context_type), intent(in), optional :: ctx
 
    self%q_in(self%iset+1:self%iset+size(qvec)) = qvec
    self%iset = self%iset + size(qvec)
 end subroutine set_1d
 
 !> Set difference between new and old density from 1D array
-subroutine diff_1d(self, qvec, error, ctx)
+subroutine diff_1d(self, qvec)
    !> Instance of the Broyden mixer
    class(broyden_mixer), intent(inout) :: self
    !> Density vector
    real(wp), intent(in) :: qvec(:)
-   !> Error handling
-   type(error_type), allocatable, intent(out) :: error
-   !> GAMBITS context
-   type(gambits_context_type), intent(in), optional :: ctx
 
    self%dq(self%idif+1:self%idif+size(qvec)) = qvec &
       & - self%q_in(self%idif+1:self%idif+size(qvec))
@@ -121,7 +112,7 @@ subroutine diff_1d(self, qvec, error, ctx)
 end subroutine diff_1d
 
 !> Apply mixing to the density
-subroutine next(self, iscf, wfn, error, ctx)
+subroutine next(self, iscf, wfn, error)
    !> Instance of the Broyden mixer
    class(broyden_mixer), intent(inout) :: self
    !> Iteration counter
@@ -130,8 +121,6 @@ subroutine next(self, iscf, wfn, error, ctx)
    type(wavefunction_type), intent(inout) :: wfn
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
-   !> GAMBITS context
-   type(gambits_context_type), intent(in), optional :: ctx
 
    integer :: info
 
@@ -142,20 +131,18 @@ subroutine next(self, iscf, wfn, error, ctx)
    call broyden(self%ndim, self%q_in, self%qlast_in, self%dq, self%dqlast, &
       & self%iter, self%memory, self%damp, self%omega, self%df, self%u, self%a, info)
    if (info /= 0) then
-      call fatal_error(error, "Broyden mixing failed to obtain next iteration")
+      allocate(error)
+      error%stat = 1
+      error%message = "Broyden mixer failed to obtain next iteration"
    end if
 end subroutine next
 
 !> Get density as 1D array
-subroutine get_1d(self, qvec, error, ctx)
+subroutine get_1d(self, qvec)
    !> Instance of the Broyden mixer
    class(broyden_mixer), intent(inout) :: self
    !> Density vector
    real(wp), intent(out) :: qvec(:)
-   !> Error handling
-   type(error_type), allocatable, intent(out) :: error
-   !> GAMBITS context
-   type(gambits_context_type), intent(in), optional :: ctx
 
    qvec(:) = self%q_in(self%iget+1:self%iget+size(qvec))
    self%iget = self%iget + size(qvec)
@@ -270,20 +257,17 @@ subroutine lineq(a, c, info)
    endif
 end subroutine lineq
 
-function get_error(self, iscf, error, ctx) result(err)
-   class(broyden_mixer), intent(inout) :: self
+pure function get_error(self,iscf) result(error)
+   class(broyden_mixer), intent(in) :: self
    integer, intent(in) :: iscf
-   type(error_type), allocatable, intent(out) :: error
-   type(gambits_context_type), intent(in), optional :: ctx
-
-   real(wp) :: err
+   real(wp) :: error
    integer :: i
 
-   err = 0.0_wp
+   error = 0.0_wp
    do i = 1, size(self%dq)
-      err = err + self%dq(i)**2 / size(self%dq)
+      error = error + self%dq(i)**2 / size(self%dq)
    end do
-   err = sqrt(err)
+   error = sqrt(error)
 end function get_error
 
 end module tblite_scf_mixer_broyden

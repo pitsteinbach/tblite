@@ -246,7 +246,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    converged = .false.
    info = calc%variable_info()
    call new_mixer(mixers, ctx, calc%mixer_info, get_mixer_dimension(mol, calc%bas, info), &
-      & calc%bas%nao, wfn%nspin, ints%overlap, info, prlevel, error)
+      & calc%bas%nao, wfn%nspin, ints%overlap, info, error)
    if (allocated(error)) then
       call ctx%set_error(error)
       return
@@ -259,11 +259,11 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
    do while(.not.converged .and. iscf < calc%max_iter)
       elast = sum(eelec)
-      call next_scf(iscf, ctx, mol, calc%bas, wfn, solver, mixers, &
+      call next_scf(iscf, mol, calc%bas, wfn, solver, mixers, &
          & info, calc%coulomb, calc%dispersion, calc%interactions, calc%exchange, &
          ints, pot, ccache, dcache, icache, ecache, eelec, error)
       econverged = abs(sum(eelec) - elast) < econv
-      pconverged = mixers%get_error_mixer(iscf, error, ctx) < pconv
+      pconverged = mixers%get_error_mixer(iscf) < pconv
       converged = econverged .and. pconverged
       if (prlevel > 0) then
          call ctx%message(format_string(iscf, "(i7)") // &
@@ -271,7 +271,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
          & escape(merge(ctx%terminal%green, ctx%terminal%red, econverged)) // &
          & format_string(sum(eelec) - elast, "(es16.7)") // &
          & escape(merge(ctx%terminal%green, ctx%terminal%red, pconverged)) // &
-         & format_string(mixers%get_error_mixer(iscf, error, ctx), "(es16.7)") // &
+         & format_string(mixers%get_error_mixer(iscf), "(es16.7)") // &
          & escape(ctx%terminal%reset))
       end if
       if (allocated(error)) then
@@ -298,13 +298,9 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message("")
    end if
 
-   if (prlevel > 2) call mixers%timings(ctx)
-   
-   call mixers%cleanup_mixer(error, ctx)   
-   if (ctx%failed()) then
-      call ctx%delete_solver(solver)
-      return
-   end if
+   call mixers%cleanup_mixer()
+   call ctx%delete_solver(solver)
+   if (ctx%failed()) return
 
    if (grad) then
       if (allocated(calc%coulomb)) then
