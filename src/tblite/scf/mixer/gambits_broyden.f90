@@ -193,8 +193,7 @@ pure function get_error_sp(self, iscf) result(error)
    real(sp) :: error
 
    error = 0.0_sp
-   error = get_broyden_error_sp(self%ctx%ptr, self%ptr, iscf, err)
-   call self%update_ctx(ctx, error)
+   error = get_broyden_error_sp(self%ctx%ptr, self%ptr, iscf, error)
 end function get_error_sp
 
 subroutine cleanup(self)
