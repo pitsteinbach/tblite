@@ -288,7 +288,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    energy = sum(energies)
    if (present(results)) then
       results%energies = energies
-      results%perr = mixers%get_error_mixer(iscf, error, ctx)
+      results%perr = mixers%get_error_mixer(iscf)
    end if
    call timer%pop
 
