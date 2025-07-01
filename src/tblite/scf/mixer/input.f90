@@ -23,7 +23,7 @@ module tblite_scf_mixer_input
    implicit none
    private
 
-   public :: mixer_type, mixer_precision, mixer_runmode
+   public :: mixer_kind, mixer_precision, mixer_runmode
 
 type enum_mixers
    !> Native broyden mixer
@@ -50,14 +50,14 @@ type enum_runmode
    integer :: gpu = 2
 end type enum_runmode
 
-   type(enum_mixers), parameter :: mixer_type = enum_mixers()
+   type(enum_mixers), parameter :: mixer_kind = enum_mixers()
    type(enum_precision), parameter :: mixer_precision = enum_precision()
    type(enum_runmode), parameter :: mixer_runmode = enum_runmode()
 
    !> Input parameters for electronic mixer
    type, public :: mixer_input
       !> Mixer type
-      integer :: type = mixer_type%broyden
+      integer :: kind = mixer_kind%broyden
       !> Damping parameter
       real(wp) :: damp = 0.4_wp
       !> Number of steps to keep in memory

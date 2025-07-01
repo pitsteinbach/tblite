@@ -24,7 +24,7 @@ module tblite_cli
       & help_text_fit, help_text_tagdiff, help_text_guess
    use tblite_features, only : get_tblite_feature
    use tblite_lapack_solver, only : lapack_algorithm
-   use tblite_scf_mixer_input, only : mixer_input, mixer_type, mixer_precision, mixer_runmode
+   use tblite_scf_mixer_input, only : mixer_input, mixer_kind, mixer_precision, mixer_runmode
    use tblite_solvation, only : solvation_input, cpcm_input, alpb_input, &
       & cds_input, shift_input, solvent_data, get_solvent_data, solution_state, born_kernel
    use tblite_version, only : get_tblite_version
@@ -502,11 +502,11 @@ subroutine get_run_arguments(config, list, start, error)
       if (.not. allocated(config%mixer)) allocate(config%mixer)
       select case (arg)
       case ("broyden")
-         config%mixer%type = mixer_type%broyden
+         config%mixer%kind = mixer_kind%broyden
       case ("gambits-broyden")
-         config%mixer%type = mixer_type%gambits_broyden
+         config%mixer%kind = mixer_kind%gambits_broyden
       case ("gambits-diis")
-         config%mixer%type = mixer_type%gambits_diis
+         config%mixer%kind = mixer_kind%gambits_diis
       case default
          call fatal_error(error,"Mixer must be either broyden, gambits-broyden or gambits-diis")
       end select

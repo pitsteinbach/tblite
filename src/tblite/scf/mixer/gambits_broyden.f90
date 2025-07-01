@@ -20,9 +20,11 @@
 !> Implementing Broyden mixing via GAMBITS
 module tblite_scf_gambits_broyden
    use mctc_env, only : error_type, dp, sp
+   use gambits, only : gambits_context_type
+   use gambits_api_broyden
    use tblite_scf_mixer_type, only : mixer_type
    use tblite_wavefunction, only : wavefunction_type
-   use iso_c_binding
+   use iso_c_binding, only : c_ptr, c_size_t
    implicit none
    private
 
@@ -31,6 +33,7 @@ module tblite_scf_gambits_broyden
    !> Electronic mixer using modified Broyden scheme via GAMBITS
    type, extends(mixer_type) :: gambits_broyden_type
       type(c_ptr) :: ptr
+      type(gambits_context_type) :: ctx
 
    contains
       !> Set new object to mix
@@ -45,99 +48,14 @@ module tblite_scf_gambits_broyden
       procedure :: get_error => get_error_dp, get_error_sp
       !> Destroy mixer pointer
       procedure :: cleanup
+      !> Update context
+      procedure :: update_ctx
    end type gambits_broyden_type
-
-   interface
-         type(c_ptr) function c_new_broyden(ndim, memory, alpha, nao, prec) bind(C,name="SetupBroyden")
-         use iso_c_binding
-         integer(c_int), value :: ndim
-         integer(c_int), value :: memory
-         real(c_double), value :: alpha
-         integer(c_int), value :: nao
-         integer(c_int), value :: prec
-      end function c_new_broyden
-
-      subroutine set_mixer_data_dp(mixer,target,size) bind(C,name="SetDataDP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_double), intent(in) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine set_mixer_data_dp
-
-      subroutine set_mixer_data_sp(mixer,target,size) bind(C,name="SetDataSP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_float), intent(in) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine set_mixer_data_sp
-
-      subroutine get_mixer_data_dp(mixer,target,size) bind(C,name="GetDataDP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_double), intent(inout) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine get_mixer_data_dp
-
-      subroutine get_mixer_data_sp(mixer,target,size) bind(C,name="GetDataSP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_float), intent(inout) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine get_mixer_data_sp
-
-      subroutine diff_mixer_data_dp(mixer,target,size) bind(C,name="DiffDataDP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_double), intent(in) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine diff_mixer_data_dp
-
-      subroutine diff_mixer_data_sp(mixer,target,size) bind(C,name="DiffDataSP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         real(c_float), intent(in) :: target(*)
-         integer(c_int), value, intent(in) :: size
-      end subroutine diff_mixer_data_sp
-
-      subroutine next_broyden_data_dp(mixer,iter,density) bind(C,name="NextDP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         integer(c_int), value, intent(in) :: iter
-         real(c_double), intent(in) :: density(*)
-      end subroutine next_broyden_data_dp
-
-      subroutine next_broyden_data_sp(mixer,iter,density) bind(C,name="NextSP")
-         use iso_c_binding
-         type(c_ptr), value, intent(in) :: mixer
-         integer(c_int), value, intent(in) :: iter
-         real(c_float), intent(in) :: density(*)
-      end subroutine next_broyden_data_sp
-
-      pure double precision function get_broyden_error_dp(mixer,iter,dummy) bind(C,name="GetErrorDP")
-         use iso_c_binding
-         type(c_ptr), value :: mixer
-         integer(c_int), value :: iter
-         real(c_double), value :: dummy
-      end function get_broyden_error_dp
-
-      pure real function get_broyden_error_sp(mixer,iter,dummy) bind(C,name="GetErrorSP")
-         use iso_c_binding
-         type(c_ptr), value :: mixer
-         integer(c_int), value :: iter
-         real(c_float), value :: dummy
-      end function get_broyden_error_sp
-
-      subroutine destroy_mixer(mixer) bind(C,name="Destroy")
-         use iso_c_binding
-         type(c_ptr), value :: mixer
-      end subroutine destroy_mixer
-
-   end interface
 
 contains
 
 !> Create a new instance of the GAMBITS Broyden mixer
-subroutine new_gambits_broyden(self, ndim, memory, alpha, nao, prec)
+subroutine new_gambits_broyden(self, ndim, memory, alpha, nao, prec, error)
    !> Instance of the GAMBITS Broyden mixer
    class(gambits_broyden_type), intent(out) :: self
    !> Number of dimensions
@@ -150,9 +68,12 @@ subroutine new_gambits_broyden(self, ndim, memory, alpha, nao, prec)
    integer, intent(in) :: nao
    !> Precision (0: single, 1: double)
    integer, intent(in) :: prec
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
-   self%ptr = c_new_broyden(ndim, memory, alpha, nao, prec)
-
+   call self%ctx%setup(int(1, kind=c_size_t))
+   self%ptr = c_new_broyden(self%ctx%ptr, ndim, memory, alpha, nao, prec)
+   call self%update_ctx(self%ctx, error)
 end subroutine new_gambits_broyden
 
 !> Set the vector to mix
@@ -162,7 +83,7 @@ subroutine set_broyden_dp(self, qvec)
    !> Density vector
    real(dp), intent(in) :: qvec(:)
 
-   call set_mixer_data_dp(self%ptr, qvec, size(qvec))
+   call set_mixer_data_dp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine set_broyden_dp
 
 subroutine set_broyden_sp(self, qvec)
@@ -171,7 +92,7 @@ subroutine set_broyden_sp(self, qvec)
    !> Density vector
    real(sp), intent(in) :: qvec(:)
 
-   call set_mixer_data_sp(self%ptr, qvec, size(qvec))
+   call set_mixer_data_sp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine set_broyden_sp
 
 !> Get the differences of the mixed vector
@@ -181,7 +102,7 @@ subroutine diff_broyden_dp(self, qvec)
    !> Density vector
    real(dp), intent(in) :: qvec(:)
 
-   call diff_mixer_data_dp(self%ptr, qvec, size(qvec))
+   call diff_mixer_data_dp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine diff_broyden_dp
 
 subroutine diff_broyden_sp(self, qvec)
@@ -190,7 +111,7 @@ subroutine diff_broyden_sp(self, qvec)
    !> Density vector
    real(sp), intent(in) :: qvec(:)
 
-   call diff_mixer_data_sp(self%ptr, qvec, size(qvec))
+   call diff_mixer_data_sp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine diff_broyden_sp
 
 !> Get the mixed vector
@@ -200,7 +121,7 @@ subroutine get_broyden_dp(self, qvec)
    !> Density vector
    real(dp), intent(out) :: qvec(:)
 
-   call get_mixer_data_dp(self%ptr, qvec, size(qvec))
+   call get_mixer_data_dp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine get_broyden_dp
 
 subroutine get_broyden_sp(self, qvec)
@@ -209,7 +130,7 @@ subroutine get_broyden_sp(self, qvec)
    !> Density vector
    real(sp), intent(out) :: qvec(:)
 
-   call get_mixer_data_sp(self%ptr, qvec, size(qvec))
+   call get_mixer_data_sp(self%ctx%ptr, self%ptr, qvec, size(qvec))
 end subroutine get_broyden_sp
 
 subroutine next_broyden_sp(self, iscf, wfn, error)
@@ -227,7 +148,8 @@ subroutine next_broyden_sp(self, iscf, wfn, error)
 
    allocate(density(size(wfn%density,1),size(wfn%density,2)))
    dptr(1:size(density)) => density
-   call next_broyden_data_sp(self%ptr, iscf, dptr)
+   call next_broyden_data_sp(self%ctx%ptr, self%ptr, iscf, dptr)
+   call self%update_ctx(self%ctx, error)
 end subroutine next_broyden_sp
 
 subroutine next_broyden_dp(self, iscf, wfn, error)
@@ -245,7 +167,8 @@ subroutine next_broyden_dp(self, iscf, wfn, error)
 
    allocate(density(size(wfn%density,1),size(wfn%density,2)))
    dptr(1:size(density)) => density
-   call next_broyden_data_dp(self%ptr, iscf, dptr)
+   call next_broyden_data_dp(self%ctx%ptr, self%ptr, iscf, dptr)
+   call self%update_ctx(self%ctx, error)
 end subroutine next_broyden_dp
 
 !> Get the density error
@@ -257,7 +180,7 @@ pure function get_error_dp(self, iscf) result(error)
 
    real(dp) :: error
 
-   error = get_broyden_error_dp(self%ptr, iscf, error)
+   error = get_broyden_error_dp(self%ctx%ptr, self%ptr, iscf, error)
 end function get_error_dp
 
 pure function get_error_sp(self, iscf) result(error)
@@ -268,14 +191,31 @@ pure function get_error_sp(self, iscf) result(error)
 
    real(sp) :: error
 
-   error = get_broyden_error_sp(self%ptr, iscf, error)
+   error = get_broyden_error_sp(self%ctx%ptr, self%ptr, iscf, error)
 end function get_error_sp
 
 subroutine cleanup(self)
    !> Instance of the GAMBITS Broyden mixer
    class(gambits_broyden_type), intent(inout) :: self
 
-   call destroy_mixer(self%ptr)
+   call destroy_mixer(self%ctx%ptr, self%ptr)
+   call self%ctx%delete()
 end subroutine cleanup
+
+subroutine update_ctx(self, ctx, error)
+   !> Mixer object
+   class(gambits_broyden_type), intent(inout) :: self
+   !> GAMBITS context
+   type(gambits_context_type), intent(in) :: ctx
+   !> Error handling
+   type(error_type), allocatable, optional, intent(out) :: error
+
+   call ctx%get_message(self%msg)
+   if (present(error) .and. ctx%failed()) then
+      allocate(error)
+      error%stat = 1
+      call ctx%get_error(error%message)
+   end if
+end subroutine update_ctx
 
 end module tblite_scf_gambits_broyden

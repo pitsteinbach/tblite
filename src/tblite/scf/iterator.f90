@@ -29,7 +29,7 @@ module tblite_scf_iterator
    use tblite_wavefunction_mulliken, only : get_mulliken_shell_charges, &
    & get_mulliken_atomic_multipoles
    use tblite_xtb_coulomb, only : tb_coulomb
-   use tblite_scf_mixer_input, only : mixer_type
+   use tblite_scf_mixer_input, only : mixer_kind
    use tblite_scf_mixer_type, only : mixers_type
    use tblite_scf_info, only : scf_info
    use tblite_scf_potential, only : potential_type, add_pot_to_h1
@@ -86,10 +86,10 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    real(wp), allocatable :: eao(:)
    real(wp) :: ts
 
-   if (iscf > 0 .and. (mixer%type(1) == mixer_type%broyden .or. mixer%type(1) == mixer_type%gambits_broyden)) then
+   if (iscf > 0 .and. (mixer%kind(1) == mixer_kind%broyden .or. mixer%kind(1) == mixer_kind%gambits_broyden)) then
       call mixer%next_mixer(iscf, wfn, error)
+      call mixer%get_mixer(bas, wfn, error)
       if (allocated(error)) return
-      call mixer%get_mixer(bas, wfn)
    end if
 
    iscf = iscf + 1
@@ -107,10 +107,10 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
 
    call mixer%set_mixer(wfn)
 
-   if (mixer%type(1) == mixer_type%gambits_diis .and. iscf > 1) then
+   if (mixer%kind(1) == mixer_kind%gambits_diis .and. iscf > 1) then
       call mixer%next_mixer(iscf, wfn, error)
+      call mixer%get_mixer(bas, wfn, error)
       if (allocated(error)) return
-      call mixer%get_mixer(bas, wfn)
    end if
 
    call get_density(wfn, solver, ints, ts, error)
@@ -125,7 +125,8 @@ subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersio
    call get_mulliken_atomic_multipoles(bas, ints%quadrupole, wfn%density, &
       & wfn%qpat)
 
-   call mixer%diff_mixer(wfn)
+   call mixer%diff_mixer(wfn, error)
+   if (allocated(error)) return
 
    allocate(eao(bas%nao), source=0.0_wp)
    call get_electronic_energy(ints%hamiltonian, wfn%density, eao)

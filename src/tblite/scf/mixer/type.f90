@@ -19,9 +19,11 @@
 
 !> Base class for electronic mixing
 module tblite_scf_mixer_type
+   use gambits, only : gambits_context_type
    use mctc_env, only : error_type, wp
    use tblite_basis_type, only : basis_type
    use tblite_scf_info, only : scf_info, atom_resolved, shell_resolved, orbital_resolved
+   use tblite_scf_mixer_input, only : mixer_kind
    use tblite_scf_utils, only : get_qat_from_qsh
    use tblite_wavefunction, only : wavefunction_type
    implicit none
@@ -30,6 +32,7 @@ module tblite_scf_mixer_type
    !> Abstract base class for electronic mixing
    type, public, abstract :: mixer_type
       type(scf_info) :: info
+      character(len=:), allocatable :: msg
    contains
       !> Apply mixing to the density
       procedure(next), deferred :: next
@@ -105,7 +108,7 @@ module tblite_scf_mixer_type
       end subroutine get_1d
 
       !> Get error metric from mixing
-      pure function get_error(self,iscf) result(error)
+      pure function get_error(self, iscf) result(error)
          import :: mixer_type, wp
          !> Instance of the electronic mixer
          class(mixer_type), intent(in) :: self
@@ -121,20 +124,22 @@ module tblite_scf_mixer_type
       !> List of mixers
       class(mixer_type), allocatable :: mixer(:)
       !> List of mixer types
-      integer, allocatable :: type(:)
+      integer, allocatable :: kind(:)
+      !> GAMBITS context
+      type(gambits_context_type), allocatable :: ctx
    contains
       !> Apply mixing to the density
       procedure :: next_mixer
       !> Get error metric from mixing
       procedure :: get_error_mixer
-      !> Destroy mixer
-      procedure :: cleanup_mixer
       !> Set new density
       procedure :: set_mixer
       !> Set difference between new and old density
       procedure :: diff_mixer
       !> Get density
       procedure :: get_mixer
+      !> Destroy mixer
+      procedure :: cleanup_mixer
    end type mixers_type
 
 contains
@@ -237,6 +242,7 @@ subroutine next_mixer(self, iscf, wfn, error)
 
    do channel = 1, size(self%mixer)
       call self%mixer(channel)%next(iscf, wfn, error)
+      if (allocated(self%mixer(channel)%msg)) deallocate(self%mixer(channel)%msg) 
    end do
 end subroutine next_mixer
 
@@ -249,7 +255,7 @@ pure function get_error_mixer(self, iscf) result(error)
 
    integer :: channel
    real(wp) :: error
-   real(wp) :: perr(size(self%type))
+   real(wp) :: perr(size(self%kind))
 
    do channel = 1, size(self%mixer)
       perr(channel) = self%mixer(channel)%get_error(iscf)
@@ -262,10 +268,10 @@ subroutine cleanup_mixer(self)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
 
-   integer :: i
+   integer :: channel
 
-   do i = 1, size(self%mixer)
-      call self%mixer(i)%cleanup()
+   do channel = 1, size(self%mixer)
+      call self%mixer(channel)%cleanup()
    end do
 end subroutine cleanup_mixer
 
@@ -307,11 +313,13 @@ subroutine set_mixer(self, wfn)
    end do
 end subroutine set_mixer
 
-subroutine diff_mixer(self, wfn)
+subroutine diff_mixer(self, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(in) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
    integer :: channel
 
@@ -345,13 +353,15 @@ subroutine diff_mixer(self, wfn)
    end do
 end subroutine diff_mixer
 
-subroutine get_mixer(self, bas, wfn)
+subroutine get_mixer(self, bas, wfn, error)
    !> Instance of the electronic mixer
    class(mixers_type), intent(inout) :: self
    !> Basis set information
    type(basis_type), intent(in) :: bas
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(inout) :: wfn
+   !> Error handling
+   type(error_type), allocatable, intent(out) :: error
 
    integer :: channel
 

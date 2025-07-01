@@ -71,19 +71,19 @@ subroutine new_broyden(self, ndim, input)
    type(mixer_input), intent(in) :: input
 
    self%ndim = ndim
-   self%memory = input%memory(input%type)
+   self%memory = input%memory(input%kind)
    self%iter = 0
    self%iset = 0
    self%idif = 0
    self%iget = 0
    self%damp = input%damp
-   allocate(self%df(ndim, input%memory(input%type)))
-   allocate(self%u(ndim, input%memory(input%type)))
-   allocate(self%a(input%memory(input%type), input%memory(input%type)))
+   allocate(self%df(ndim, input%memory(input%kind)))
+   allocate(self%u(ndim, input%memory(input%kind)))
+   allocate(self%a(input%memory(input%kind), input%memory(input%kind)))
    allocate(self%dq(ndim))
    allocate(self%dqlast(ndim))
    allocate(self%qlast_in(ndim))
-   allocate(self%omega(input%memory(input%type)))
+   allocate(self%omega(input%memory(input%kind)))
    allocate(self%q_in(ndim))
 
 end subroutine new_broyden
@@ -131,7 +131,9 @@ subroutine next(self, iscf, wfn, error)
    call broyden(self%ndim, self%q_in, self%qlast_in, self%dq, self%dqlast, &
       & self%iter, self%memory, self%damp, self%omega, self%df, self%u, self%a, info)
    if (info /= 0) then
-      call fatal_error(error, "Broyden mixing failed to obtain next iteration")
+      allocate(error)
+      error%stat = 1
+      error%message = "Broyden mixer failed to obtain next iteration"
    end if
 end subroutine next
 

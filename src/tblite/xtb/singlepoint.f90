@@ -239,8 +239,12 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    iscf = 0
    converged = .false.
    info = calc%variable_info()
-   call new_mixer(mixers, calc%mixer_info, get_mixer_dimension(mol, calc%bas, info), &
-      & calc%bas%nao, wfn%nspin, ints%overlap, info)
+   call new_mixer(mixers, ctx, calc%mixer_info, get_mixer_dimension(mol, calc%bas, info), &
+      & calc%bas%nao, wfn%nspin, ints%overlap, info, error)
+   if (allocated(error)) then
+      call ctx%set_error(error)
+      return
+   end if
 
    if (prlevel > 0) then
       call ctx%message(repeat("-", 60))
@@ -269,7 +273,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
          exit
       end if
    end do
-   call mixers%cleanup_mixer()
+
    if (prlevel > 0) then
       call ctx%message(repeat("-", 60))
       call ctx%message("")
@@ -287,6 +291,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call ctx%message("")
    end if
 
+   call mixers%cleanup_mixer()
    call ctx%delete_solver(solver)
    if (ctx%failed()) return
 
