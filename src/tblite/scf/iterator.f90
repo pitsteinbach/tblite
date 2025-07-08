@@ -42,6 +42,7 @@ module tblite_scf_iterator
 
 contains
 
+!> Evaluate self-consistent iteration for the density-dependent Hamiltonian
 subroutine next_scf(iscf, mol, bas, wfn, solver, mixer, info, coulomb, dispersion, &
       & interactions, ints, pot, ccache, dcache, icache, energies, error)
    !> Current iteration count
