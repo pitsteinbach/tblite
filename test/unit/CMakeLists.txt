@@ -33,6 +33,7 @@ set(
   "ncoord"
   "npy"
   "npz"
+  "mixers"
   "post-processing"
   "repulsion"
   "slater-expansion"
@@ -53,10 +54,14 @@ set(
   test-srcs
   "main.f90"
 )
+
 foreach(t IN LISTS tests)
   string(MAKE_C_IDENTIFIER ${t} t) 
   list(APPEND test-srcs "test_${t}.f90")
 endforeach()
+
+list(APPEND tests "mixers_gpu")
+list(APPEND test-srcs "test_mixers_gpu.F90")
 
 add_executable(
   "${PROJECT_NAME}-tester"

@@ -44,6 +44,7 @@ tests = [
   'integral-overlap',
   'integral-multipole',
   'ipea1-xtb',
+  'mixers',
   'ncoord',
   'npy',
   'npz',
@@ -69,6 +70,14 @@ test_srcs = files(
 foreach t : tests
   test_srcs += files('test_@0@.f90'.format(t.underscorify()))
 endforeach
+
+tests += [
+  'mixers_gpu',
+]
+
+test_srcs += files(
+  'test_mixers_gpu.F90',
+)
 
 tester = executable(
   'tester',

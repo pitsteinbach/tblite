@@ -206,3 +206,27 @@ test(
   ], 
   suite: 'cli',
 )
+
+test(
+  'mixers-gambits-broyden-xyz-cli', 
+  tblite_exe, 
+  should_fail:false, 
+  args: [
+    'run', 
+    '--mixer', 'gambits-broyden',
+    files('07-mb33.xyz')
+  ], 
+  suite: 'cli',
+)
+
+test(
+  'mixers-gambits-diis-xyz-cli', 
+  tblite_exe, 
+  should_fail:false, 
+  args: [
+    'run', 
+    '--mixer', 'gambits-diis',
+    files('07-mb33.xyz')
+  ], 
+  suite: 'cli',
+)
