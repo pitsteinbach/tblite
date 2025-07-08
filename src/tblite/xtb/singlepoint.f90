@@ -99,7 +99,6 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    real(wp), allocatable :: cn(:), dcndr(:, :, :), dcndL(:, :, :), dEdcn(:)
    real(wp), allocatable :: selfenergy(:), dsedcn(:), lattr(:, :), wdensity(:, :, :)
    type(integral_type) :: ints
-   real(wp), allocatable :: tmp(:)
    type(potential_type) :: pot
    type(container_cache), allocatable :: ccache, dcache, icache, hcache, rcache
    type(mixers_type) :: mixers
@@ -122,8 +121,6 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
 
    econv = 1.e-6_wp*accuracy
    pconv = 2.e-5_wp*accuracy
-
-   call ctx%new_solver(solver, calc%bas%nao)
 
    grad = present(gradient) .and. present(sigma)
 
@@ -232,6 +229,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    call new_integral(ints, calc%bas%nao)
    call get_hamiltonian(mol, lattr, list, calc%bas, calc%h0, selfenergy, &
       & ints%overlap, ints%dipole, ints%quadrupole, ints%hamiltonian)
+
+   call ctx%new_solver(solver, ints%overlap, wfn%nel, wfn%kt)
    call timer%pop
 
    call timer%push("scc")
@@ -292,8 +291,10 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
 
    call mixers%cleanup_mixer()
-   call ctx%delete_solver(solver)
-   if (ctx%failed()) return
+   if (ctx%failed()) then
+      call ctx%delete_solver(solver)
+      return
+   end if
 
    if (grad) then
       if (allocated(calc%coulomb)) then
@@ -319,10 +320,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       dEdcn(:) = 0.0_wp
 
       allocate(wdensity(calc%bas%nao, calc%bas%nao, wfn%nspin))
-      do spin = 1, wfn%nspin
-         tmp = wfn%focc(:, spin) * wfn%emo(:, spin)
-         call get_density_matrix(tmp, wfn%coeff(:, :, spin), wdensity(:, :, spin))
-      end do
+      call solver%get_wdensity(wfn%coeff, ints%overlap, wfn%emo, wfn%focc, wdensity, error)
       call updown_to_magnet(wfn%density)
       call updown_to_magnet(wdensity)
       call get_hamiltonian_gradient(mol, lattr, list, calc%bas, calc%h0, selfenergy, &
@@ -338,6 +336,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       call timer%pop
    end if
 
+   call ctx%delete_solver(solver)
    if (ctx%failed()) return
 
    if (present(post_process)) then
@@ -355,7 +354,6 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       allocate(results%dict)
       if (present(post_process)) then 
          call post_process%pack_res(mol, results)
-         if (prlevel > 1) call results%dict%dump("post_processing.toml", error)
       end if
    end if
 
