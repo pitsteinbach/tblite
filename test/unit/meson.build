@@ -72,6 +72,14 @@ foreach t : tests
   test_srcs += files('test_@0@.f90'.format(t.underscorify()))
 endforeach
 
+tests += [
+  'mixers_gpu',
+]
+
+test_srcs += files(
+  'test_mixers_gpu.F90',
+)
+
 tester = executable(
   'tester',
   sources: test_srcs,

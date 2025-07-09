@@ -60,6 +60,9 @@ foreach(t IN LISTS tests)
   list(APPEND test-srcs "test_${t}.f90")
 endforeach()
 
+list(APPEND tests "mixers_gpu")
+list(APPEND test-srcs "test_mixers_gpu.F90")
+
 add_executable(
   "${PROJECT_NAME}-tester"
   "${test-srcs}"

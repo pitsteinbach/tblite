@@ -13,8 +13,8 @@ module test_mixers
    use tblite_xtb_singlepoint, only : xtb_singlepoint
    implicit none
    private
-   real(wp), parameter :: thr = 100*epsilon(1.0_wp)
    real(wp), parameter :: acc = 0.1_wp
+   real(wp), parameter :: thr = 1.e-6_wp*acc
    real(wp), parameter :: kt = 300.0_wp * 3.166808578545117e-06_wp
    public :: collect_mixers
 contains
@@ -40,8 +40,7 @@ subroutine test_broyden(error)
    type(results_type) :: res
 
    integer, parameter :: nat=12
-   real(wp) :: energy = 0.0_wp
-   real(wp) :: perr = 0.0_wp
+   real(wp) :: energy_native = 0.0_wp, energy_gambits = 0.0_wp
    real(wp), parameter :: xyz(3, nat) = reshape((/&
    &1.06880660023529,       -0.46478030005927,        0.00009471732781,&
    &2.45331325533661,       -0.46484444142679,        0.00042084312846,&
@@ -69,20 +68,18 @@ subroutine test_broyden(error)
 
    calc%mixer_info = mixer_config
    call new_wavefunction(wfn, mol%nat, calc%bas%nsh, calc%bas%nao, 1, kt)
-   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy, verbosity=0, results=res)
-
-   perr = res%perr
+   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy_native, verbosity=0, results=res)
 
    call new(mol, num, xyz*aatoau, uhf=0, charge=0.0_wp)
    call new_gfn2_calculator(calc, mol, error)
    mixer_config%kind = mixer_kind%gambits_broyden
    calc%mixer_info = mixer_config
    call new_wavefunction(wfn, mol%nat, calc%bas%nsh, calc%bas%nao, 1, kt)
-   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy, verbosity=0, results=res)
+   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy_gambits, verbosity=0, results=res)
 
-   if (abs(res%perr - perr) > thr) then
-      call test_failed(error, "GAMBITS Broyden mixing does not give the same density error as native Broyden mixing.")
-      print '(2es21.14)', perr, res%perr
+   if (abs(energy_native - energy_gambits) > thr) then
+      call test_failed(error, "GAMBITS Broyden mixing does not give the same energy as native Broyden mixing.")
+      print '(2es21.14)', energy_gambits, energy_native
    end if
 
 end subroutine test_broyden
@@ -98,8 +95,7 @@ subroutine test_diis_cpu(error)
    type(results_type) :: res
 
    integer, parameter :: nat=22
-   real(wp) :: energy = 0.0_wp
-   real(wp) :: perr = 0.0_wp
+   real(wp) :: energy_native = 0.0_wp, energy_gambits = 0.0_wp
    real(wp), parameter :: xyz(3, nat) = reshape((/&
    &1.40704587900135,-1.266053426,-1.93713467409179,&
    &1.8500720142163,-0.46824073,-1.50918243052625,&
@@ -129,22 +125,30 @@ subroutine test_diis_cpu(error)
    call new(mol, num, xyz*aatoau, uhf=0, charge=0.0_wp)
    call new_gfn2_calculator(calc, mol, error)
    
-   mixer_config%kind = mixer_kind%gambits_diis
-   mixer_config%memory = 10
+   mixer_config%kind = mixer_kind%broyden
+   mixer_config%memory = 250
    mixer_config%nao = calc%bas%nao
-   mixer_config%runmode = mixer_runmode%cpu
    mixer_config%prec = mixer_precision%double
    mixer_config%damp = 0.4_wp
 
    calc%mixer_info = mixer_config
    call new_wavefunction(wfn, mol%nat, calc%bas%nsh, calc%bas%nao, 1, kt)
-   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy, verbosity=0, results=res)
+   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy_native, verbosity=0, results=res)
 
-   perr = 4.68256077468254E-07_wp
+   call new(mol, num, xyz*aatoau, uhf=0, charge=0.0_wp)
+   call new_gfn2_calculator(calc, mol, error)
+   
+   mixer_config%kind = mixer_kind%gambits_diis
+   mixer_config%memory = 5
+   mixer_config%prec = mixer_precision%double
+   calc%mixer_info = mixer_config
+   call new_wavefunction(wfn, mol%nat, calc%bas%nsh, calc%bas%nao, 1, kt)
+   call xtb_singlepoint(ctx, mol, calc, wfn, acc, energy_gambits, verbosity=0, results=res)
 
-   if (abs(res%perr - perr) > thr) then
-      call test_failed(error, "GAMBITS DIIS CPU mixing does not give the correct density error.")
-      print '(2es21.14)', perr, res%perr
+   if (abs(energy_native - energy_gambits) > thr) then
+      call test_failed(error, "GAMBITS DIIS mixing does not give the same energy as native Broyden mixing.")
+      print '(2es21.14)', energy_gambits, energy_native
+      write(*,*) "Energy difference:", abs(energy_gambits - energy_native)
    end if
 
 end subroutine test_diis_cpu

@@ -51,7 +51,6 @@ subroutine get_electronic_energy(h0, density, energies)
    end do
 end subroutine get_electronic_energy
 
-
 subroutine reduce(reduced, full, map)
    real(wp), intent(inout) :: reduced(:)
    real(wp), intent(in) :: full(:)
@@ -63,7 +62,6 @@ subroutine reduce(reduced, full, map)
       reduced(map(ix)) = reduced(map(ix)) + full(ix)
    end do
 end subroutine reduce
-
 
 subroutine get_qat_from_qsh(bas, qsh, qat)
    type(basis_type), intent(in) :: bas

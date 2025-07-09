@@ -22,9 +22,10 @@ option(
 )
 
 option(
-  'gpu',
-  type: 'boolean',
-  value: false,
+  'lapack',
+  type: 'combo',
+  value: 'auto',
   yield: true,
-  description: 'Compile with cuBLAS wrapper for capable GPUs only.',
+  choices: ['auto', 'mkl', 'mkl-rt', 'openblas', 'netlib', 'custom'],
+  description : 'linear algebra backend',
 )

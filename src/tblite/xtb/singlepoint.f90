@@ -299,8 +299,10 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    end if
 
    call mixers%cleanup_mixer()
-   call ctx%delete_solver(solver)
-   if (ctx%failed()) return
+   if (ctx%failed()) then
+      call ctx%delete_solver(solver)
+      return
+   end if
 
    if (grad) then
       if (allocated(calc%coulomb)) then

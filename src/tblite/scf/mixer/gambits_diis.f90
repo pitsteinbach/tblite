@@ -208,7 +208,7 @@ pure function get_error_dp(self, iscf) result(error)
 
    real(dp) :: error
 
-   error = 0.0_sp
+   error = 0.0_dp
    error = get_diis_error_dp(self%ctx%ptr, self%ptr, iscf, error)
    error = error * (self%nspin*1.0)**2
 end function get_error_dp
