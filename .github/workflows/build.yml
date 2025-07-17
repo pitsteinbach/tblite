@@ -64,6 +64,11 @@ jobs:
           build-type: debug
           toolchain: {compiler: gcc, version: '12', build: fpm}
 
+        - os: macos-latest
+          build-type: debug
+          toolchain: {compiler: gcc, version: '13', build: cmake}
+          
+
         # - os: windows-latest
         #   build: meson
         #   build-type: debug
@@ -143,7 +148,6 @@ jobs:
       if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
       run: |
         source /opt/intel/oneapi/setvars.sh --force
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10 --slave /usr/bin/g++ g++ /usr/bin/g++-10
         printenv >> $GITHUB_ENV
 
     - name: Setup environment for Fortran and C compilers
@@ -158,6 +162,7 @@ jobs:
             CC="icx"
             CXX="icpx"
           elif [ "${{ matrix.toolchain.compiler }}" = "intel-classic" ]; then
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10 --slave /usr/bin/g++ g++ /usr/bin/g++-10
             FC="ifort"
             CC="icc"
             CXX="icpc"
