@@ -100,7 +100,8 @@ jobs:
     - name: Install LAPACK (macOS)
       if: ${{ contains(matrix.os, 'macos') && matrix.toolchain.compiler == 'gcc' }}
       run: |
-        brew install openblas@0.3.29
+        curl -O https://raw.githubusercontent.com/Homebrew/homebrew-core/6d109851ffc4a4209bf80f3fa97f092b2199cf56/Formula/o/openblas.rb
+        brew install openblas.rb
         echo "PKG_CONFIG_PATH=/usr/local/opt/openblas/lib/pkgconfig" >> $GITHUB_ENV
         echo "LDFLAGS=-L/opt/homebrew/opt/openblas/lib" >> $GITHUB_ENV
         echo "CPPFLAGS=-I/opt/homebrew/opt/openblas/include" >> $GITHUB_ENV
