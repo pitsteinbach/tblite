@@ -240,10 +240,10 @@ jobs:
 
     - name: Run unit tests (ctest)
       if: ${{ matrix.toolchain.build == 'cmake' }}
-      run: | #ctest --output-on-failure --parallel 2 -R '^tblite/'
-         cd ${{ env.BUILD_DIR }}
-         pwd
+      run: | 
          test/unit/tblite-tester
+         ctest --output-on-failure --parallel 2 -R '^tblite/'
+         
       working-directory: ${{ env.BUILD_DIR }}
       env:
         OMP_NUM_THREADS: 1,2,1
