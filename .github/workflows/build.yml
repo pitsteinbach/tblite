@@ -137,13 +137,13 @@ jobs:
       if: ${{ contains(matrix.os, 'ubuntu') && contains(matrix.toolchain.compiler, 'intel') && steps.cache-install.outputs.cache-hit != 'true' }}
       run: |
         sudo apt-get install -y gcc-10 gfortran-10 g++-10
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10 --slave /usr/bin/g++ g++ /usr/bin/g++-10
         sudo apt-get install intel-oneapi-mkl-${{ matrix.toolchain.mkl_version }} intel-oneapi-mkl-devel-${{ matrix.toolchain.mkl_version }}
 
     - name: Setup Intel oneAPI environment
       if: ${{ contains(matrix.toolchain.compiler, 'intel') }}
       run: |
         source /opt/intel/oneapi/setvars.sh --force
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10 --slave /usr/bin/g++ g++ /usr/bin/g++-10
         printenv >> $GITHUB_ENV
 
     - name: Setup environment for Fortran and C compilers
