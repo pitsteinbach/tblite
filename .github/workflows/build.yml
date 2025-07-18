@@ -165,7 +165,7 @@ jobs:
             FC="ifort"
             CC="icc"
             CXX="icpc"
-          elif [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.toolchain.os }}" = "macos" ];
+          elif [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.os }}" = "macos" ]; then
             FC="gfortran-${{ matrix.toolchain.version }}"
             CC="gcc-${{ matrix.toolchain.version }}"
             CXX="g++-${{ matrix.toolchain.version }}"
