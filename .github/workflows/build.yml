@@ -165,6 +165,10 @@ jobs:
             FC="ifort"
             CC="icc"
             CXX="icpc"
+          elif [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.toolchain.os }}" = "macos" ];
+            FC="gfortran-${{ matrix.toolchain.version }}"
+            CC="gcc-${{ matrix.toolchain.version }}"
+            CXX="g++-${{ matrix.toolchain.version }}"
           fi
           echo "FC=$FC" >> $GITHUB_ENV
           echo "CC=$CC" >> $GITHUB_ENV
