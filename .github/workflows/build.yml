@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         build-type: [debug]
         toolchain:
           - {compiler: gcc, version: '12', build: meson}
@@ -67,14 +67,6 @@ jobs:
         - os: macos-latest
           build-type: debug
           toolchain: {compiler: gcc, version: '15', build: cmake}
-
-        - os: macos-latest
-          build-type: debug
-          toolchain: {compiler: gcc, version: '12', build: cmake}
-        
-        - os: macos-latest
-          build-type: debug
-          toolchain: {compiler: gcc, version: '12', build: meson}
 
         # - os: windows-latest
         #   build: meson
