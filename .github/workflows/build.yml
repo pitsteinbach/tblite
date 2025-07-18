@@ -151,7 +151,11 @@ jobs:
     - name: Setup environment for Fortran and C compilers
       run: |
         if [ ! -n "$FC" ]; then
-          if [ "${{ matrix.toolchain.compiler }}" = "gcc" ]; then
+          if [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.os }}" = "macos" ]; then
+            FC="gfortran-${{ matrix.toolchain.version }}"
+            CC="gcc-${{ matrix.toolchain.version }}"
+            CXX="g++-${{ matrix.toolchain.version }}"
+          elif [ "${{ matrix.toolchain.compiler }}" = "gcc" ]; then
             FC="gfortran"
             CC="gcc"
             CXX="g++"
@@ -165,10 +169,6 @@ jobs:
             FC="ifort"
             CC="icc"
             CXX="icpc"
-          elif [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.os }}" = "macos" ]; then
-            FC="gfortran-${{ matrix.toolchain.version }}"
-            CC="gcc-${{ matrix.toolchain.version }}"
-            CXX="g++-${{ matrix.toolchain.version }}"
           fi
           echo "FC=$FC" >> $GITHUB_ENV
           echo "CC=$CC" >> $GITHUB_ENV
