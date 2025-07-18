@@ -151,7 +151,7 @@ jobs:
     - name: Setup environment for Fortran and C compilers
       run: |
         if [ ! -n "$FC" ]; then
-          if [ "${{ matrix.toolchain.compiler }}" = "gcc" &&  "${{ matrix.os }}" = "macos" ]; then
+          if [ "${{ matrix.toolchain.compiler }}" = "gcc" && ${{ contains(matrix.os, "macos") }} ]; then
             FC="gfortran-${{ matrix.toolchain.version }}"
             CC="gcc-${{ matrix.toolchain.version }}"
             CXX="g++-${{ matrix.toolchain.version }}"
