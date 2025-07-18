@@ -214,7 +214,6 @@ jobs:
     - name: Build library
       if: ${{ matrix.toolchain.build != 'fpm' }}
       run: |
-        cat ${{ env.BUILD_DIR }}/build.ninja
         ninja -C ${{ env.BUILD_DIR }}
 
     - name: Run unit tests (fpm)
