@@ -41,6 +41,7 @@ module tblite_xtb_calculator
    use tblite_param, only : param_record
    use tblite_repulsion, only : new_repulsion
    use tblite_repulsion_effective, only : tb_repulsion
+   use tblite_scf_mixer_input, only : mixer_input
    use tblite_xtb_coulomb, only : tb_coulomb
    use tblite_xtb_h0, only : tb_hamiltonian, new_hamiltonian
    use tblite_xtb_spec, only : tb_h0spec
@@ -76,6 +77,8 @@ module tblite_xtb_calculator
       class(dispersion_type), allocatable :: dispersion
       !> Exchange interaction
       class(exchange_type), allocatable :: exchange
+      !> Parameter for self-consistent iteration mixing
+      type(mixer_input) :: mixer_info
       !> Parameter for self-consistent iteration mixing
       real(wp) :: mixer_damping = mixer_damping_default
       !> Maximum number of self-consistent iteractions

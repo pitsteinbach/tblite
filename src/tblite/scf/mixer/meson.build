@@ -15,6 +15,9 @@
 # along with tblite.  If not, see <https://www.gnu.org/licenses/>.
 
 srcs += files(
+  'gambits_broyden.f90',
+  'gambits_diis.f90',
   'broyden.f90',
+  'input.f90',
   'type.f90',
 )

@@ -441,7 +441,7 @@ end function variable_info
 
 subroutine delete(self)
     !> Instance of the exchange container
-    class(mulliken_kfock_type), intent(inout) :: self
+    class(mulliken_kfock_type), intent(in) :: self
     !> Delete indexer object
     call DeleteIndexer(self%indexer)
     !> Delete exchange object
@@ -461,11 +461,6 @@ subroutine delete(self)
         write(*,*) "___________________________________"             
         write(*,*) "   "//"Total: "//format_time(ttime)
     end block
-    !> Deallocate gamma matrix
-    if (allocated(self%gamma_)) deallocate(self%gamma_)
-    !> Deallocate omega and lrscale
-    if (allocated(self%omega)) deallocate(self%omega)
-    if (allocated(self%lrscale)) deallocate(self%lrscale)
 end subroutine delete
 
 

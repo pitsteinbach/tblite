@@ -16,7 +16,7 @@ module tblite_exchange_type
       procedure :: get_potential_w_overlap
       !> Evaluate charge dependent potential shift from the interaction
       procedure :: get_gradient_w_overlap
-   
+      procedure :: delete 
    end type exchange_type
 contains
 
@@ -52,5 +52,9 @@ subroutine get_gradient_w_overlap(self, mol, cache, wfn, gradient, ao_grad, over
    !> Overlap integral matrix
    real(wp), intent(in) :: overlap(:,:)
 end subroutine get_gradient_w_overlap
+
+subroutine delete(self)
+   class(exchange_type), intent(in) :: self
+end subroutine delete
 
 end module tblite_exchange_type

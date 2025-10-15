@@ -159,6 +159,8 @@ subroutine run_main(config, error)
 
    if (allocated(config%max_iter)) calc%max_iter = config%max_iter
 
+   if (allocated(config%mixer)) calc%mixer_info = config%mixer
+
    use_guess = .true.
    restart_exist = .false.
    if (config%restart) restart_exist = exists(config%restart_file)

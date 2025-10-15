@@ -22,19 +22,14 @@ module tblite_scf_mixer_broyden
    use mctc_env, only : wp, error_type, fatal_error
    use tblite_lapack, only : getrf, getrs
    use tblite_scf_mixer_type, only : mixer_type
+   use tblite_wavefunction, only : wavefunction_type
+   use tblite_scf_mixer_input, only : mixer_input
    implicit none
    private
 
    public :: new_broyden
 
 
-   !> Configuration for the Broyden mixer
-   type, public :: broyden_input
-      !> Number of steps to keep in memory
-      integer :: memory
-      !> Damping parameter
-      real(wp) :: damp
-   end type broyden_input
 
    !> Electronic mixer using modified Broyden scheme
    type, public, extends(mixer_type) :: broyden_mixer
@@ -70,27 +65,27 @@ contains
 
 !> Create new instance of electronic mixer
 subroutine new_broyden(self, ndim, input)
-   !> Instance of the mixer
+   !> Instance of the Broyden mixer
    type(broyden_mixer), intent(out) :: self
    !> Number of variables to consider
    integer, intent(in) :: ndim
    !> Configuration of the Broyden mixer
-   type(broyden_input), intent(in) :: input
+   type(mixer_input), intent(in) :: input
 
    self%ndim = ndim
-   self%memory = input%memory
+   self%memory = input%memory(input%kind)
    self%iter = 0
    self%iset = 0
    self%idif = 0
    self%iget = 0
    self%damp = input%damp
-   allocate(self%df(ndim, input%memory))
-   allocate(self%u(ndim, input%memory))
-   allocate(self%a(input%memory, input%memory))
+   allocate(self%df(ndim, input%memory(input%kind)))
+   allocate(self%u(ndim, input%memory(input%kind)))
+   allocate(self%a(input%memory(input%kind), input%memory(input%kind)))
    allocate(self%dq(ndim))
    allocate(self%dqlast(ndim))
    allocate(self%qlast_in(ndim))
-   allocate(self%omega(input%memory))
+   allocate(self%omega(input%memory(input%kind)))
    allocate(self%q_in(ndim))
 end subroutine new_broyden
 
@@ -116,9 +111,13 @@ subroutine diff_1d(self, qvec)
 end subroutine diff_1d
 
 !> Apply mixing to the density
-subroutine next(self, error)
-   !> Instance of the mixer
+subroutine next(self, iscf, wfn, error)
+   !> Instance of the Broyden mixer
    class(broyden_mixer), intent(inout) :: self
+   !> Iteration counter
+   integer, intent(in) :: iscf
+   !> Tight-binding wavefunction data
+   type(wavefunction_type), intent(inout) :: wfn
    !> Error handling
    type(error_type), allocatable, intent(out) :: error
 
@@ -131,9 +130,12 @@ subroutine next(self, error)
    call broyden(self%ndim, self%q_in, self%qlast_in, self%dq, self%dqlast, &
       & self%iter, self%memory, self%damp, self%omega, self%df, self%u, self%a, info)
    if (info /= 0) then
-      call fatal_error(error, "Broyden mixing failed to obtain next iteration")
+      allocate(error)
+      error%stat = 1
+      error%message = "Broyden mixer failed to obtain next iteration"
    end if
 end subroutine next
+
 
 !> Get density as 1D array
 subroutine get_1d(self, qvec)
@@ -255,10 +257,12 @@ subroutine lineq(a, c, info)
    endif
 end subroutine lineq
 
-pure function get_error(self) result(error)
+pure function get_error(self, iscf) result(error)
    class(broyden_mixer), intent(in) :: self
+   integer, intent(in) :: iscf
    real(wp) :: error
    integer :: i
+
    error = 0.0_wp
    do i = 1, size(self%dq)
       error = error + self%dq(i)**2 / size(self%dq)

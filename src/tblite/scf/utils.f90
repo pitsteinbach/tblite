@@ -25,7 +25,6 @@ module tblite_scf_utils
     use tblite_scf_solver, only : solver_type
     use tblite_integral_type, only : integral_type
     use tblite_wavefunction_fermi, only : get_fermi_filling
-    use tblite_wavefunction_type, only : get_density_matrix
    use tblite_purification_solver, only : purification_solver
     implicit none
     public
@@ -80,7 +79,7 @@ module tblite_scf_utils
     end do
  end subroutine get_qat_from_qsh
  
- subroutine get_density(wfn, solver, ints, ts, error)
+ subroutine next_density(wfn, solver, ints, ts, error)
     !> Tight-binding wavefunction data
     type(wavefunction_type), intent(inout) :: wfn
     !> Solver for the general eigenvalue problem
@@ -113,7 +112,7 @@ module tblite_scf_utils
    class default
       call get_density_from_coeff(wfn, solver, ints, ts, error)
    end select
- end subroutine get_density
+ end subroutine next_density
 
 subroutine get_density_from_coeff(wfn, solver, ints, ts, error)
 type(wavefunction_type), intent(inout) :: wfn

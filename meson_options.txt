@@ -71,7 +71,7 @@ option(
 option(
   'gpu_arch', 
   type: 'array',
-  value: ['native'],
+  value: ['89','70','86'],
   yield: true,
   description: 'GPU architecture version string',
 )

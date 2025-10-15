@@ -36,6 +36,7 @@ module tblite_scf_info
       integer :: dipole = not_used
       integer :: quadrupole = not_used
       integer :: density = not_used
+      integer :: fock = not_used
    end type scf_info
 
    interface max
@@ -53,7 +54,8 @@ pure function max_info(lhs, rhs) result(new)
       charge=max(lhs%charge, rhs%charge), &
       dipole=max(lhs%dipole, rhs%dipole), &
       quadrupole=max(lhs%quadrupole, rhs%quadrupole), &
-      density=max(lhs%density, rhs%density))
+      density=max(lhs%density, rhs%density), &
+      fock=max(lhs%fock, rhs%fock))
 
 end function max_info
 
